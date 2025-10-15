@@ -302,40 +302,38 @@ const closeSearchOnFocusOut = (e, navTools) => {
   }
 };
 
-let listOfAllPlaceholdersData = [];
+//let listOfAllPlaceholdersData = [];
 
+// async function makeImageClickableNSettingAltText(placeholderData) {
+//     try {
+//         const logoImage = document.querySelector('.nav-brand img');
+//         const anchor = document.createElement('a');
+//         Object.assign(anchor, {
+//             href: placeholderData?.logoUrl || 'https://main--universal-demo--adobehols.aem.live/',
+//             title: logoImage?.alt,
+//         });
+//         const picture = document.querySelector('.nav-brand picture');
+//         if (picture) anchor.appendChild(picture);
+//         const targetElement = document.querySelector('.nav-brand .default-content-wrapper');
+//         if (targetElement) {
+//             targetElement.appendChild(anchor);
+//         }
+//     } catch (error) {
+//         console.error('Error in makeImageClickableNSettingAltText:', error);
+//     }
+// }
 
-
-async function makeImageClickableNSettingAltText(placeholderData) {
-    try {
-        const logoImage = document.querySelector('.nav-brand img');
-        const anchor = document.createElement('a');
-        Object.assign(anchor, {
-            href: placeholderData?.logoUrl || 'https://main--universal-demo--adobehols.aem.live/',
-            title: logoImage?.alt,
-        });
-        const picture = document.querySelector('.nav-brand picture');
-        if (picture) anchor.appendChild(picture);
-        const targetElement = document.querySelector('.nav-brand .default-content-wrapper');
-        if (targetElement) {
-            targetElement.appendChild(anchor);
-        }
-    } catch (error) {
-        console.error('Error in makeImageClickableNSettingAltText:', error);
-    }
-}
-
-async function fetchingPlaceholdersData() {
-    try {
-        listOfAllPlaceholdersData = await fetchPlaceholders();
-        await makeImageClickableNSettingAltText(listOfAllPlaceholdersData);
-        return true; // Indicate successful completion
-    } catch (error) {
-        console.error('Error in fetchingPlaceholdersData:', error);
-        listOfAllPlaceholdersData = []; // Set default value on error
-        return false; // Indicate failure
-    }
-}
+// async function fetchingPlaceholdersData() {
+//     try {
+//         listOfAllPlaceholdersData = await fetchPlaceholders();
+//         await makeImageClickableNSettingAltText(listOfAllPlaceholdersData);
+//         return true; // Indicate successful completion
+//     } catch (error) {
+//         console.error('Error in fetchingPlaceholdersData:', error);
+//         listOfAllPlaceholdersData = []; // Set default value on error
+//         return false; // Indicate failure
+//     }
+// }
 
 
 async function addLogoLink(langCode) {
