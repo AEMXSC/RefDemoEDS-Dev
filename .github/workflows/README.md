@@ -52,7 +52,7 @@ Creates a **Pull Request** with template changes for review before merging.
 This workflow is pre-configured to sync with the main template repository:
 
 ```yaml
-git remote add template https://github.com/AEMXSC/RefDemoEDS-Dev.git
+git remote add template https://github.com/AEMXSC/RefDemoEDS.git
 ```
 
 If you created this repository using "Use this template" from `AEMXSC/RefDemoEDS`, no configuration changes are needed.
@@ -88,7 +88,7 @@ Make sure your repository has the following settings:
 2. **Update Check**: It fetches the latest changes from the template repository (`AEMXSC/RefDemoEDS`)
 3. **Smart Sync**: Only creates a pull request if there are actual updates
 4. **Smart Merge Strategy**: Uses `-X theirs` to prefer template changes, avoiding false conflicts
-5. **File Protection**: Preserves your custom files (`paths.json`, `fstab.yaml`) during sync
+5. **File Protection**: Preserves your custom files (`paths.json`, `fstab.yaml`, `.github/workflows`) during sync
 6. **Pull Request**: Creates a PR with all the template changes for review and merging
 
 ### Understanding the Merge Strategy
@@ -103,7 +103,7 @@ When syncing, git sees these as **unrelated histories**. The workflow handles th
 1. Using `--allow-unrelated-histories` to allow the merge
 2. Using `-X theirs` (merge strategy) to automatically prefer template changes
 3. This prevents false conflicts when your repo hasn't modified files
-4. Protected files (`paths.json`, `fstab.yaml`) are still preserved via backup/restore
+4. Protected files (`paths.json`, `fstab.yaml`, `.github/workflows`) are still preserved via backup/restore
 
 ## Workflow Features
 
@@ -144,6 +144,7 @@ To preserve additional custom files during sync, update the `IGNORE_FILES` array
 IGNORE_FILES=(
   "paths.json"
   "fstab.yaml"
+  ".github/workflows"
 )
 ```
 
