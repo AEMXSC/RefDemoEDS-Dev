@@ -35,7 +35,15 @@ jobs:
         # Template repository: AEMXSC/RefDemoEDS-dev
         git remote add template https://github.com/AEMXSC/RefDemoEDS-dev.git
         # Fetch only the main branch from template
-        git fetch template main
+        if ! git fetch template main; then
+          echo "❌ Failed to fetch from template repository"
+          echo "Please check:"
+          echo "  1. Template repository exists: https://github.com/AEMXSC/RefDemoEDS-Dev"
+          echo "  2. Repository is accessible (public or you have access)"
+          echo "  3. Network connection is available"
+          exit 1
+        fi
+        echo "✅ Successfully fetched template repository"
 
     - name: Check for updates
       id: check-updates
