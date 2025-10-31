@@ -1,0 +1,88 @@
+.tabs .tabs-list {
+  display: flex;
+  gap: 0;
+  max-width: 100%;
+  font-size: var(--body-font-size-xs);
+  overflow-x: auto;
+  border-bottom: 2px solid var(--light-color);
+  margin-bottom: 0;
+}
+
+@media (width >= 600px) {
+  .tabs .tabs-list {
+    font-size: var(--body-font-size-s);
+  }
+}
+
+@media (width >= 900px) {
+  .tabs .tabs-list {
+    font-size: var(--body-font-size-m);
+  }
+}
+
+.tabs .tabs-list button {
+  flex: 0 0 max-content;
+  margin: 0;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 16px 24px;
+  background-color: transparent;
+  color: var(--text-color);
+  font-family: var(--heading-font-family);
+  font-weight: 600;
+  font-size: var(--body-font-size-s);
+  line-height: 1.4;
+  text-align: center;
+  text-overflow: unset;
+  overflow: unset;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.tabs .tabs-list button:hover {
+  background-color: var(--tab-background-color);
+  color: var(--link-hover-color);
+}
+
+.tabs .tabs-list button p {
+  margin: 0;
+}
+
+.tabs .tabs-list button[aria-selected='true'] {
+  border-bottom-color: var(--main-accent-color);
+  background-color: transparent;
+  color: var(--main-accent-color);
+  cursor: default;
+  font-weight: 700;
+}
+
+.tabs .tabs-list button[aria-selected='true']:hover {
+  background-color: var(--tab-background-color);
+}
+
+.tabs .tabs-panel {
+  margin-top: 0;
+  padding: 24px;
+  border: none;
+  overflow: auto;
+  background-color: var(--tab-background-color);
+}
+
+@media (width >= 768px) {
+  .tabs .tabs-panel {
+    padding: 32px 40px;
+  }
+}
+
+@media (width >= 1024px) {
+  .tabs .tabs-panel {
+    padding: 40px 48px;
+  }
+}
+
+.tabs .tabs-panel[aria-hidden='true'] {
+  display: none;
+}
