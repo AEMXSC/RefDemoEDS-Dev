@@ -4370,6 +4370,26 @@
     ]
   },
   {
+    "id": "tabs",
+    "fields": [
+      {
+        "component": "select",
+        "name": "tabsstyle",
+        "label": "Tabs Style",
+        "options": [
+          {
+            "name": "Default",
+            "value": ""
+          },
+          {
+            "name": "Card Style",
+            "value": "card-style-tab"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "tabs-item",
     "fields": [
       {

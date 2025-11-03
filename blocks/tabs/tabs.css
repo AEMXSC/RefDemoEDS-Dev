@@ -86,3 +86,86 @@
 .tabs .tabs-panel[aria-hidden='true'] {
   display: none;
 }
+
+/* Card Style Tab Variant - Image Left, Text Right */
+.tabs.card-style-tab .tabs-panel {
+  padding: 0;
+  background-color: var(--background-color);
+  box-shadow: 0 3px 20px rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  min-height: 400px;
+}
+
+/* Ensure hidden panels remain hidden for card-style variant */
+.tabs.card-style-tab .tabs-panel[aria-hidden='true'] {
+  display: none !important;
+}
+
+.tabs.card-style-tab .tabs-panel .tabs-panel-image,
+.tabs.card-style-tab .tabs-panel picture {
+ /*flex: 0 0 50%;*/
+  display: flex;
+  overflow: hidden;
+}
+
+.tabs.card-style-tab .tabs-panel .tabs-panel-image img,
+.tabs.card-style-tab .tabs-panel .tabs-panel-image picture img,
+.tabs.card-style-tab .tabs-panel picture img {
+  width: 100%;
+  height: auto; /* keep aspect ratio; do not stretch to panel height */
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  padding-top: 60px;
+  padding-bottom: 60px;
+}
+
+.tabs.card-style-tab .tabs-panel .tabs-panel-image p {
+  margin: 0;
+  width: 100%;
+  height: auto; /* allow image height to define wrapper height */
+  display: block;
+}
+
+.tabs.card-style-tab .tabs-panel .tabs-panel-content {
+  flex: 0 0 50%;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* When there is no image, let content take full width */
+.tabs.card-style-tab .tabs-panel.no-image .tabs-panel-content {
+  flex: 1 0 auto;
+}
+
+.tabs.card-style-tab .tabs-panel .tabs-panel-content > * {
+  margin: 0 0 16px 0;
+}
+
+.tabs.card-style-tab .tabs-panel .tabs-panel-content > *:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .tabs.card-style-tab .tabs-panel {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .tabs.card-style-tab .tabs-panel .tabs-panel-image,
+  .tabs.card-style-tab .tabs-panel picture {
+    flex: 0 0 auto;
+    max-height: 300px;
+  }
+
+  .tabs.card-style-tab .tabs-panel .tabs-panel-content {
+    flex: 0 0 auto;
+    padding: 24px;
+  }
+}
