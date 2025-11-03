@@ -342,6 +342,7 @@ body.green-theme {
 
 .wehealthcare-theme {
   --main-accent-color: #00c4ff;
+  --nav-text-color:#000000;
 }
 /*brand header footer brand themes*/
 body header .nav-wrapper{
