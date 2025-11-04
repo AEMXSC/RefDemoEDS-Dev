@@ -63,17 +63,6 @@
         },
         {
           "condition": {
-            "===": [{ "var": "delivery_Type" }, "dm"]
-          },
-            "component": "text",
-            "name": "dmUrlFromAEM",
-            "value": "",
-            "label": "Dynamic Media URL from Asset",
-            "description": "Dynamic Media URL from Asset",
-            "valueType": "string"
-        },
-        {
-          "condition": {
             "===": [{ "var": "delivery_Type" }, "dm-openapi"]
           },
           "component": "select",
