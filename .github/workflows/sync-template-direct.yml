@@ -33,6 +33,8 @@ jobs:
     - name: Add template repository as remote
       run: |
         # Template repository: AEMXSC/RefDemoEDS-dev
+        # Remove if exists (in case of reruns)
+        git remote remove template 2>/dev/null || true
         git remote add template https://github.com/AEMXSC/RefDemoEDS-dev.git
         # Fetch only the main branch from template
         git fetch template main
@@ -99,21 +101,18 @@ jobs:
             fi
           done
           
-          # Add and commit the restored files (only if there are changes)
+          # Check if restored files need to be committed
           git add .
-          if git diff --cached --quiet; then
-            echo "ℹ️ No changes after merge and restore - nothing to sync"
-            echo "merge_status=no_changes" >> $GITHUB_OUTPUT
-            echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
-          else
+          if ! git diff --cached --quiet; then
+            # There are changes to restored files, commit them
             git commit -m "Restore custom files after template sync" || true
-            
-            # Push directly to main
-            git push origin main
-            
-            echo "merge_status=success" >> $GITHUB_OUTPUT
-            echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
           fi
+          
+          # Push directly to main (merge commit exists even if no restore changes)
+          git push origin main
+          
+          echo "merge_status=success" >> $GITHUB_OUTPUT
+          echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
         else
           echo "⚠️ Merge has conflicts - falling back to PR creation"
           MERGE_STATUS="conflicts"
@@ -204,17 +203,6 @@ jobs:
         echo "The following files were preserved during sync:" >> $GITHUB_STEP_SUMMARY
         echo "- \`paths.json\`" >> $GITHUB_STEP_SUMMARY
         echo "- \`fstab.yaml\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`.github/workflows/\`" >> $GITHUB_STEP_SUMMARY
-
-    - name: No changes to sync
-      if: steps.check-updates.outputs.has_updates == 'true' && steps.sync-changes.outputs.merge_status == 'no_changes'
-      run: |
-        echo "## ℹ️ No Changes to Sync" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Commits differ but no file changes detected.**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Template and current repository have identical file content." >> $GITHUB_STEP_SUMMARY
-        echo "Archive branch created: \`${{ steps.sync-changes.outputs.archive_branch }}\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Fallback PR created notification
       if: steps.check-updates.outputs.has_updates == 'true' && steps.sync-changes.outputs.merge_status == 'conflicts'

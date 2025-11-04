@@ -33,6 +33,8 @@ jobs:
     - name: Add template repository as remote
       run: |
         # Template repository: AEMXSC/RefDemoEDS-dev
+        # Remove if exists (in case of reruns)
+        git remote remove template 2>/dev/null || true
         git remote add template https://github.com/AEMXSC/RefDemoEDS-dev.git
         # Fetch only the main branch from template
         git fetch template main
@@ -110,73 +112,34 @@ jobs:
           fi
         done
         
-        # Add and commit the restored files (only if there are changes)
+        # Check if restored files need to be committed
         git add .
-        if git diff --cached --quiet; then
-          echo "ℹ️ No changes after merge and restore - nothing to sync"
-          git checkout main
-          git branch -D "$BRANCH_NAME"
-          echo "merge_status=no_changes" >> $GITHUB_OUTPUT
-          echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
-        else
+        if ! git diff --cached --quiet; then
+          # There are changes to restored files, commit them
           git commit -m "Restore custom files after template sync" || true
-          
-          # Push the branch
-          git push origin "$BRANCH_NAME"
-          
-          # Store merge status and branch name for PR creation
-          echo "merge_status=$MERGE_STATUS" >> $GITHUB_OUTPUT
-          echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          
-          # Create pull request using GitHub CLI with appropriate message
-          if [ "$MERGE_STATUS" = "conflicts" ]; then
-            PR_TITLE="⚠️ Sync template repository (HAS CONFLICTS) - $(date +%Y-%m-%d)"
-            PR_BODY="This PR syncs the latest changes from the template repository.
-          
-        **⚠️ MERGE CONFLICTS DETECTED**
-        
-        This PR contains merge conflicts that need to be resolved manually.
-        Please review the conflicts, resolve them, and then merge.
-        
-        **Template commit:** \`${{ steps.check-updates.outputs.template_commit }}\`
-        **Sync date:** $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)
-        **Archive branch:** \`$ARCHIVE_BRANCH\` (backup of state before sync)
-        
-        ## How to resolve conflicts:
-        1. Review the files with conflicts in the 'Files changed' tab
-        2. Click 'Resolve conflicts' button in GitHub UI
-        3. Edit the files to resolve conflicts
-        4. Mark as resolved and commit
-        5. Merge the PR"
-          else
-            PR_TITLE="🔄 Sync template repository - $(date +%Y-%m-%d)"
-            PR_BODY="This PR syncs the latest changes from the template repository.
-          
-        **✅ No conflicts detected**
-        
-        **Template commit:** \`${{ steps.check-updates.outputs.template_commit }}\`
-        **Sync date:** $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)
-        **Archive branch:** \`$ARCHIVE_BRANCH\` (backup of state before sync)
-        
-        Please review the changes and merge if everything looks good."
-          fi
-          
-          gh pr create \
-            --title "$PR_TITLE" \
-            --body "$PR_BODY" \
-            --base main \
-            --head "$BRANCH_NAME"
         fi
+        
+        # Push the branch (merge commit exists even if no restore changes)
+        git push origin "$BRANCH_NAME"
+        
+        # Store merge status and branch name for PR creation
+        echo "merge_status=$MERGE_STATUS" >> $GITHUB_OUTPUT
+        echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        
+        # Create pull request using GitHub CLI with appropriate message
+        PR_TITLE="🔄 Sync template repository - $(date +%Y-%m-%d)"
+        if [ "$MERGE_STATUS" = "conflicts" ]; then
+          PR_TITLE="⚠️ Sync template repository (HAS CONFLICTS) - $(date +%Y-%m-%d)"
+        fi
+        
+        gh pr create \
+          --title "$PR_TITLE" \
+          --body "This PR syncs the latest changes from the template repository from commit ${{ steps.check-updates.outputs.template_commit }}. Sync date: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC). Archive branch: $ARCHIVE_BRANCH" \
+          --base main \
+          --head "$BRANCH_NAME"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: No changes to sync
-      if: steps.check-updates.outputs.has_updates == 'true' && steps.sync-changes.outputs.merge_status == 'no_changes'
-      run: |
-        echo "✅ Commits differ but no file changes detected"
-        echo "Template and current repository have identical content."
-        echo "Archive branch created: ${{ steps.sync-changes.outputs.archive_branch }}"
 
     - name: No updates available
       if: steps.check-updates.outputs.has_updates == 'false'
