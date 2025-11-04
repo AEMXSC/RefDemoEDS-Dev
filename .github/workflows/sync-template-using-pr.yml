@@ -119,25 +119,39 @@ jobs:
           git commit -m "Restore custom files after template sync" || true
         fi
         
-        # Push the branch (merge commit exists even if no restore changes)
-        git push origin "$BRANCH_NAME"
-        
-        # Store merge status and branch name for PR creation
-        echo "merge_status=$MERGE_STATUS" >> $GITHUB_OUTPUT
-        echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
-        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        
-        # Create pull request using GitHub CLI with appropriate message
-        PR_TITLE="🔄 Sync template repository - $(date +%Y-%m-%d)"
-        if [ "$MERGE_STATUS" = "conflicts" ]; then
-          PR_TITLE="⚠️ Sync template repository (HAS CONFLICTS) - $(date +%Y-%m-%d)"
+        # Check if there are any differences from main before creating PR
+        git fetch origin main
+        if git diff --quiet origin/main "$BRANCH_NAME"; then
+          echo "ℹ️ No file changes detected after merge and restore"
+          echo "Branch has same content as main - skipping PR creation"
+          git checkout main
+          git branch -D "$BRANCH_NAME"
+          echo "merge_status=no_changes" >> $GITHUB_OUTPUT
+          echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
+        else
+          # There are actual changes, push and create PR
+          echo "✅ Changes detected, proceeding with PR creation"
+          
+          # Push the branch
+          git push origin "$BRANCH_NAME"
+          
+          # Store merge status and branch name for PR creation
+          echo "merge_status=$MERGE_STATUS" >> $GITHUB_OUTPUT
+          echo "archive_branch=$ARCHIVE_BRANCH" >> $GITHUB_OUTPUT
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          # Create pull request using GitHub CLI with appropriate message
+          PR_TITLE="🔄 Sync template repository - $(date +%Y-%m-%d)"
+          if [ "$MERGE_STATUS" = "conflicts" ]; then
+            PR_TITLE="⚠️ Sync template repository (HAS CONFLICTS) - $(date +%Y-%m-%d)"
+          fi
+          
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "This PR syncs the latest changes from the template repository from commit ${{ steps.check-updates.outputs.template_commit }}. Sync date: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC). Archive branch: $ARCHIVE_BRANCH" \
+            --base main \
+            --head "$BRANCH_NAME"
         fi
-        
-        gh pr create \
-          --title "$PR_TITLE" \
-          --body "This PR syncs the latest changes from the template repository from commit ${{ steps.check-updates.outputs.template_commit }}. Sync date: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC). Archive branch: $ARCHIVE_BRANCH" \
-          --base main \
-          --head "$BRANCH_NAME"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -146,3 +160,14 @@ jobs:
       run: |
         echo "✅ No updates available from template repository"
         echo "Current repository is up to date with template."
+    
+    - name: No file changes detected
+      if: steps.check-updates.outputs.has_updates == 'true' && steps.sync-changes.outputs.merge_status == 'no_changes'
+      run: |
+        echo "## ℹ️ No File Changes to Sync" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "While the template has different commits, the actual file contents are identical." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Archive branch created:** \`${{ steps.sync-changes.outputs.archive_branch }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "No pull request was created because there are no changes to merge." >> $GITHUB_STEP_SUMMARY
