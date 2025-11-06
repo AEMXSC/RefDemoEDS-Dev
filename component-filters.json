@@ -20,12 +20,14 @@
       "fragment",
       "hero",
       "image",
+      "quote",
       "teaser",
       "text",
       "title",
       "video",
       "search",
       "separator",
+      "tabs",
       "form",
       "forex",
       "accordion",
@@ -65,6 +67,12 @@
       "text",      
       "title",
       "video"
+    ]
+  },
+  {
+    "id": "tabs",
+    "components": [
+      "tabs-item"
     ]
   },
   {

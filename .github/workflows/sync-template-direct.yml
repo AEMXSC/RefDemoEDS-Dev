@@ -32,10 +32,8 @@ jobs:
 
     - name: Add template repository as remote
       run: |
-        # Template repository: AEMXSC/RefDemoEDS-Dev
-        # Remove if exists (in case of reruns)
-        git remote remove template 2>/dev/null || true
-        git remote add template https://github.com/AEMXSC/RefDemoEDS-Dev.git
+        # Template repository: AEMXSC/RefDemoEDS-dev
+        git remote add template https://github.com/AEMXSC/RefDemoEDS-dev.git
         # Fetch only the main branch from template
         git fetch template main
 

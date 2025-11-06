@@ -1,6 +1,6 @@
-# AEM Reference Demo (for Edge Delivery Service experience)
+# Reference Demo Framework (for AEM EDS)
 
-**A customizable UI experience:**
+**Build your Own Demos for EDS**
 - Custom Themes (with and without code)
 - Dynamic Media Templates
 - Dynamic Media Open API & native Dynamic Media Blocks
@@ -20,8 +20,8 @@
   - Template contains placeholder blocks with various styling options
 
 ## Environments
-- Preview: https://main--wknd--aemxsc.aem.page/
-- Live: https://main--wknd--aemxsc.aem.live/
+- Preview: http://main--refdemoeds-dev--aemxsc.aem.page/
+- Live: http://main--refdemoeds-dev--aemxsc.aem.live/
 
 ## Documentation
 [Ref Demo 2.0](https://adobe.com/go/refdemo) 

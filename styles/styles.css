@@ -36,7 +36,7 @@
 
   --dark-color-opacity: rgba(0, 0, 0, 0.55);
   --light-color-opacity: rgba(255, 255, 255, 0.5);
-
+  --tab-background-color: rgba(0, 0, 0, 0.02);
   /* brand-scoped header/footer variables with sensible defaults */
   --nav-background-color: var(--brand-nav-background-color, #0000008c);
   --nav-text-color: var(--brand-nav-text-color, #ffffff);
@@ -342,6 +342,7 @@ body.green-theme {
 
 .wehealthcare-theme {
   --main-accent-color: #00c4ff;
+  --nav-text-color:#000000;
 }
 /*brand header footer brand themes*/
 body header .nav-wrapper{
