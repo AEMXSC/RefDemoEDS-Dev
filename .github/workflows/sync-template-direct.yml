@@ -130,7 +130,7 @@ jobs:
           git merge --abort
           
           # Create a new branch for the PR fallback
-          BRANCH_NAME="sync-template-fallback-$(date +%Y%m%d-%H%M%S)"
+          BRANCH_NAME="sync-template-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$BRANCH_NAME"
           
           # Try merge again but commit with conflicts this time

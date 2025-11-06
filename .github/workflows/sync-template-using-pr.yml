@@ -70,7 +70,7 @@ jobs:
         git checkout main
         
         # Create a new branch for the sync
-        BRANCH_NAME="sync-ref-demo-template-$(date +%Y%m%d-%H%M%S)"
+        BRANCH_NAME="sync-template-$(date +%Y%m%d-%H%M%S)"
         git checkout -b "$BRANCH_NAME"
         
         # Define files to ignore during sync (add your custom files here)
