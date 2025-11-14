@@ -125,6 +125,75 @@ function buildAutoBlocks() {
 }
 
 /**
+ * Create section background image from section[data-image].
+ * Optionally supports data-tab-image and data-mob-image for responsive overrides.
+ * Idempotent: will not duplicate if already enhanced.
+ */
+function decorateSectionImages(doc) {
+  const sections = doc.querySelectorAll('main .section[data-image]');
+  sections.forEach((section) => {
+    if (section.querySelector('picture.section-bg')) return; // already enhanced
+
+    const desktopSrc = section.dataset.image?.trim();
+    if (!desktopSrc) return;
+
+    const tabletSrc = section.dataset.tabImage?.trim();
+    const mobileSrc = section.dataset.mobImage?.trim();
+
+    const pic = picture();
+    pic.className = 'section-bg';
+
+    // WebP sources for breakpoints (prefer authored overrides if present)
+    const desktopCandidate = desktopSrc;
+    const tabletCandidate = tabletSrc || desktopSrc;
+    const mobileCandidate = mobileSrc || tabletSrc || desktopSrc;
+
+    // Desktop
+    try {
+      pic.appendChild(source({ srcset: `${new URL(desktopCandidate, window.location.href).pathname}?width=1400&format=webply&optimize=medium`, type: 'image/webp', media: '(min-width: 992px)' }));
+    } catch (e) { /* ignore malformed URL */ }
+    // Tablet
+    try {
+      pic.appendChild(source({ srcset: `${new URL(tabletCandidate, window.location.href).pathname}?width=1024&format=webply&optimize=medium`, type: 'image/webp', media: '(min-width: 768px)' }));
+    } catch (e) { /* ignore malformed URL */ }
+    // Mobile
+    try {
+      pic.appendChild(source({ srcset: `${new URL(mobileCandidate, window.location.href).pathname}?width=768&format=webply&optimize=medium`, type: 'image/webp', media: '(min-width: 320px)' }));
+    } catch (e) { /* ignore malformed URL */ }
+
+    // Fallback <img> uses authored URL (keeps original format/params)
+    const fallbackImg = img({ src: desktopSrc, alt: '', class: 'sec-img', loading: 'lazy' });
+    pic.appendChild(fallbackImg);
+
+    // Mark and insert as first child
+    section.classList.add('section-has-bg');
+    section.prepend(pic);
+
+    // Compute and lock section height to image height (based on current width)
+    const updateHeight = () => {
+      if (fallbackImg.naturalWidth > 0 && fallbackImg.naturalHeight > 0) {
+        const ratio = fallbackImg.naturalHeight / fallbackImg.naturalWidth;
+        const width = section.getBoundingClientRect().width;
+        const height = Math.round(width * ratio);
+        section.style.minHeight = '';
+        section.style.height = `${height}px`;
+      }
+    };
+
+    if (fallbackImg.complete) {
+      updateHeight();
+    } else {
+      fallbackImg.addEventListener('load', updateHeight, { once: true });
+    }
+
+    // Recalculate on viewport changes
+    const onResize = () => updateHeight();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+  });
+}
+
+/**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
  */
@@ -290,11 +359,10 @@ async function loadEager(doc) {
 async function loadLazy(doc) {
   const main = doc.querySelector('main');
   await loadSections(main);
-  //decorateSectionImages(doc);
+  decorateSectionImages(doc);
   const { hash } = window.location;
   const element = hash ? doc.getElementById(hash.substring(1)) : false;
   if (hash && element) element.scrollIntoView();
-  //decorateSectionImages(doc);
   loadHeader(doc.querySelector('header'));
   loadFooter(doc.querySelector('footer'));
 
