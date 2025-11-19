@@ -832,6 +832,36 @@ main .section.bg-image > .default-content-wrapper {
   background: #000;
 }
 
+/* Section background image (data-image) */
+main .section.section-has-bg {
+  position: relative;
+  overflow: hidden;
+}
+main .section > picture.section-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+/* disable shine effect on background picture */
+main .section > picture.section-bg::before {
+  content: none;
+}
+main .section > picture.section-bg img.sec-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+main .section.section-has-bg > div {
+  position: relative;
+  z-index: 1;
+}
+@media print {
+  main .section > picture.section-bg { display: none; }
+}
+
 /* Responsive styles- start */
 @media (max-width: 1024px) {
   :root {
