@@ -335,6 +335,78 @@ export async function fetchLanguageNavigation(langCode) {
   await window.navigationData[langCode];
 }
 
+/**
+ * Load and cache path mappings from paths.json to convert AEM content paths
+ * (e.g., /content/...) into site-relative paths (e.g., /en/...).
+ */
+let cachedPathMappings;
+export async function getPathMappings() {
+  if (cachedPathMappings) return cachedPathMappings;
+  try {
+    const resp = await fetch('/paths.json', { headers: { Accept: 'application/json' } });
+    if (!resp.ok) return { mappings: [], includes: [] };
+    const json = await resp.json();
+    cachedPathMappings = {
+      mappings: Array.isArray(json.mappings) ? json.mappings.slice() : [],
+      includes: Array.isArray(json.includes) ? json.includes.slice() : [],
+    };
+    return cachedPathMappings;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load /paths.json', e);
+    return { mappings: [], includes: [] };
+  }
+}
+
+/**
+ * Map a given AEM content path to a site-relative path using mappings from paths.json.
+ * - Chooses the longest matching source prefix.
+ * - Preserves the remaining suffix (without .html).
+ * - Always returns a leading slash path.
+ */
+export async function mapAemPathToSitePath(aemPath) {
+  try {
+    if (!aemPath || typeof aemPath !== 'string') return aemPath || '/';
+    const url = new URL(aemPath, window.location.origin);
+    let pathname = url.pathname || aemPath;
+    // Strip .html if present
+    pathname = pathname.replace(/\.html$/i, '');
+    const { mappings } = await getPathMappings();
+    if (!mappings || !mappings.length) return pathname;
+    // Find best match (longest src that is a prefix of pathname)
+    let best = null;
+    mappings.forEach((entry) => {
+      if (typeof entry !== 'string' || !entry.includes(':')) return;
+      const [srcRaw, destRaw] = entry.split(':');
+      const src = srcRaw.trim();
+      const dest = (destRaw || '').trim();
+      if (src && pathname.startsWith(src)) {
+        if (!best || src.length > best.src.length) {
+          best = { src, dest };
+        }
+      }
+    });
+    if (!best) return pathname;
+    const suffix = pathname.substring(best.src.length);
+    const join = (a, b) => {
+      if (!a) return b || '/';
+      if (!b) return a || '/';
+      const left = a.endsWith('/') ? a.slice(0, -1) : a;
+      const right = b.startsWith('/') ? b.slice(1) : b;
+      return `/${[left, right].filter(Boolean).join('/')}`.replace(/\/{2,}/g, '/');
+    };
+    let mapped = join(best.dest, suffix);
+    // Normalize to have leading slash and collapse double slashes
+    if (!mapped.startsWith('/')) mapped = `/${mapped}`;
+    mapped = mapped.replace(/\/{2,}/g, '/');
+    return mapped;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to map AEM path to site path', e);
+    return aemPath;
+  }
+}
+
 
 export async function fetchData(url, method = 'GET', headers = {}, body = null) {
   try {
