@@ -707,7 +707,7 @@
     ]
   },
   {
-    "id": "dm-openapi",
+    "id": "dynamic-media-image",
     "fields": [
       {
           "component": "custom-asset-namespace:custom-asset",
@@ -737,13 +737,22 @@
             {
               "name": "PNG – Enhanced Clarity",
               "value": "Always_Use_a_Preset"
+            },
+            {
+              "name": "Large Banner",
+              "value": "Large Banner"
+            },
+            {
+              "name": "Small thumbnail",
+              "value": "Small thumbnail"
+            },
+             {
+              "name": "Medium sized cards",
+              "value": "Medium sized cards"
             }
           ]
       },
       {
-          "condition": {
-              "==": [{ "var": "preset" }, ""]
-          },
           "component": "select",
           "name": "rotate",
           "value": "",
@@ -802,9 +811,6 @@
           ]
       },
       {
-          "condition": {
-              "==": [{ "var": "preset" }, ""]
-          },
           "component": "select",
           "name": "flip",
           "value": "",
@@ -831,9 +837,6 @@
           ]
       },
       {
-          "condition": {
-              "==": [{ "var": "preset" }, ""]
-          },
           "component": "text",
           "name": "crop",
           "value": "",
