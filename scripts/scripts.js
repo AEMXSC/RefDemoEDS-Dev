@@ -397,7 +397,6 @@ async function loadLazy(doc) {
   loadFonts();
 }
 
-
 /**
  * Decorates Dynamic Media images by modifying their URLs to include specific parameters
  * and creating a <picture> element with different sources for different image formats and sizes.
@@ -405,174 +404,180 @@ async function loadLazy(doc) {
  * @param {HTMLElement} main - The main container element that includes the links to be processed.
  */
 export async function decorateDMImages(main) {
-    const links = Array.from(main.querySelectorAll('a[href]'));
-    
-    for (const a of links) {
-       if (isDMOpenAPIUrl(a.href)) {
-  
-            // add code to read the toggle flag
-            const isGifFile = a.href.toLowerCase().endsWith('.gif');
-            const containsOriginal = a.href.includes('/original/');
-            const dmOpenApiDiv = a.closest('.dm-openapi') ||  a.closest('.dynamic-media-image');
-            if(dmOpenApiDiv){
-                if (!containsOriginal || isGifFile) {
-                    const blockBeingDecorated = whatBlockIsThis(a);
-                    let blockName = '';
-                    let rotate = '';
-                    let flip = '';
-                    let crop = '';
-                    let preset = '';
-            
-                    if(blockBeingDecorated){
-                        blockName = Array.from(blockBeingDecorated.classList).find(className => className !== 'block');
-                    }
-                    const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.mkv'];
-                    const isVideoAsset = videoExtensions.some(ext => a.href.toLowerCase().includes(ext));
-                    if (isVideoAsset || blockName === 'video') continue;
-                    
-                    if(blockName && (blockName === 'dm-openapi' || blockName === 'dynamic-media-image')){
-            
-                        const parentDiv = a.closest('div');
-                        if (parentDiv && parentDiv.parentElement) {
-            
-                        const presetDiv = parentDiv.parentElement.nextElementSibling;
-                        if (presetDiv) {
-                            if (presetDiv && presetDiv.textContent.trim()) {
-                            preset = presetDiv.textContent.trim();
-                            // Remove the rotation div from markup
-                            presetDiv.remove();
-                            }
-                        }
-            
-                        const rotateDiv = parentDiv.parentElement.nextElementSibling;
-                        if (rotateDiv) {
-                            if (rotateDiv && rotateDiv.textContent.trim()) {
-                            rotate = rotateDiv.textContent.trim();
-                            // Remove the rotation div from markup
-                            rotateDiv.remove();
-                            }
-                        }
-            
-                        const flipDiv = parentDiv.parentElement.nextElementSibling;
-                        if (flipDiv) {
-                            if (flipDiv && flipDiv.textContent.trim()) {
-                            flip = flipDiv.textContent.trim();
-                            // Remove the rotation div from markup
-                            flipDiv.remove();
-                            }
-                        }
-            
-                        const cropDiv = parentDiv.parentElement.nextElementSibling;
-                        if (cropDiv) {
-                            if (cropDiv && cropDiv.textContent.trim()) {
-                            crop = cropDiv.textContent.trim();
-                            // Remove the rotation div from markup
-                            cropDiv.remove();
-                            }
-                        }
-                        }
-                        // Remove all immediate (direct) child divs only
-                        const directChildDivs = dmOpenApiDiv.querySelectorAll(':scope > div');
-                        directChildDivs.forEach(div => div.remove());
-                        
-                    }
-                    let metadataUrl = getMetadataUrl(a.href);
-                        
-                    if (metadataUrl) {
-                        try {
-                            const response = await fetch(metadataUrl);
-                            if (!response.ok) {
-                            console.error(`Failed to fetch metadata: ${response.status}`);
-                            continue;
-                            }
-                            
-                            const metadata = await response.json();
-                            const smartcrops = metadata?.repositoryMetadata?.smartcrops;
-                            
-                            if (smartcrops) {
-                            const pic = document.createElement('picture');
-                            pic.style.textAlign = 'center';
-            
-                                const originalUrl = new URL(a.href);
-                            // Get base URL with extension
-                            const baseUrl = a.href.split('?')[0];
-                            
-                            // Check if original URL has query parameters to determine separator
-                            const hasQueryParams = originalUrl?.toString().includes('?');
-                            const paramSeparator = hasQueryParams ? '&' : '?';
-                            
-                                
-                            // Dynamically determine crop order from JSON (largest to smallest width)
-                            const cropOrder = Object.keys(smartcrops).sort((a, b) => {
-                                const widthA = parseInt(smartcrops[a].width, 10);
-                                const widthB = parseInt(smartcrops[b].width, 10);
-                                return widthB - widthA;
-                            });
-                            
-                            // Find the largest crop for fallback
-                            const largestCropWidth = Math.max(...cropOrder.map(cropName => {
-                                const crop = smartcrops[cropName];
-                                return crop ? parseInt(crop.width, 10) : 0;
-                            }));
-                            const extraLargeBreakpoint = Math.max(largestCropWidth + 1, 1300);
-            
-                            
-                            // Create source sets (one for each smartcrop size)
-                            // Build parameter string for rotate, flip, and crop
-                            const advanceModifierParams = `${rotate ? '&rotate=' + rotate : ''}${flip ? '&flip=' + flip.toLowerCase() : ''}${crop ? '&crop=' + crop.toLowerCase() : ''}${preset ? '&preset=' + preset : ''}`;
-                            
-                            // Add source for extra large screens WITHOUT smartcrop FIRST
-                            // This will be used for screens >= extraLargeBreakpoint (e.g., 1920px+)
-                            const sourceWebpExtraLarge = document.createElement('source');
-                            sourceWebpExtraLarge.type = "image/webp";
-                            // No smartcrop parameter - uses original full-size image
-                            sourceWebpExtraLarge.srcset = `${originalUrl}${paramSeparator}quality=85&preferwebp=true${advanceModifierParams}`;
-                            sourceWebpExtraLarge.media = `(min-width: ${extraLargeBreakpoint}px)`;
-                            pic.appendChild(sourceWebpExtraLarge);  
-            
-            
-                            cropOrder.forEach((cropName, index) => {
-                                const crop = smartcrops[cropName];
-                                if (crop) {
-                                const minWidth = parseInt(crop.width, 10);
-                                // Since baseUrl has no query params, always use ? for first param
-                                const smartcropParam = `${paramSeparator}smartcrop=${cropName}`;
-                                
-                                // Create source with type attribute based on URL extension
-                                const sourceWebp = document.createElement('source');
-                                sourceWebp.type = "image/webp";
-                                sourceWebp.srcset = `${originalUrl}${smartcropParam}&quality=85&preferwebp=true${advanceModifierParams}`;
-                                // Smallest crop (first in order) has no media query (default), others use min-width based on width property
-                                if (minWidth > 0) {
-                                    sourceWebp.media = `(min-width: ${minWidth}px)`;
-                                }
-                                pic.appendChild(sourceWebp);
-                                }
-                            });
-                            
-                            // Use smallest crop as fallback for img element
-                            const fallbackUrl = `${originalUrl}${paramSeparator}quality=85&preferwebp=true${advanceModifierParams}`;
-                            
-                            const img = document.createElement('img');
-                            img.loading = 'lazy';
-                            img.src = fallbackUrl;
-                            
-                            if (a.href !== a.title) {
-                                img.setAttribute('alt', a.title || '');
-                            } else {
-                                img.setAttribute('alt', '');
-                            }
-                            pic.appendChild(img);
-                            dmOpenApiDiv.appendChild(pic);
-                            }
-                        } catch (error) {
-                            console.error('Error fetching or processing metadata:', error);
-                        }
-                    }
-                }
+  const links = Array.from(main.querySelectorAll('a[href]'));
+
+  for (const a of links) {
+    if (isDMOpenAPIUrl(a.href)) {
+      const isGifFile = a.href.toLowerCase().endsWith('.gif');
+      const containsOriginal = a.href.includes('/original/');
+      const dmOpenApiDiv =
+        a.closest('.dm-openapi') || a.closest('.dynamic-media-image');
+
+      if (dmOpenApiDiv) {
+        if (!containsOriginal || isGifFile) {
+          const blockBeingDecorated = whatBlockIsThis(a);
+          let blockName = '';
+          let rotate = '';
+          let flip = '';
+          let crop = '';
+          let preset = '';
+
+          if (blockBeingDecorated) {
+            blockName = Array.from(blockBeingDecorated.classList).find(
+              (className) => className !== 'block'
+            );
+          }
+
+          const videoExtensions = [
+            '.mp4',
+            '.mov',
+            '.webm',
+            '.ogg',
+            '.m4v',
+            '.mkv',
+          ];
+          const isVideoAsset = videoExtensions.some((ext) =>
+            a.href.toLowerCase().includes(ext)
+          );
+
+          if (isVideoAsset || blockName === 'video') continue;
+
+          if (
+            blockName &&
+            (blockName === 'dm-openapi' || blockName === 'dynamic-media-image')
+          ) {
+            const parentDiv = a.closest('div');
+
+            if (parentDiv && parentDiv.parentElement) {
+              // Walk siblings in order
+              let current = parentDiv.parentElement.nextElementSibling;
+
+              // preset
+              if (current && current.textContent.trim()) {
+                preset = current.textContent.trim();
+                current.remove();
+              }
+
+              // rotate
+              current = parentDiv.parentElement.nextElementSibling;
+              if (current && current.textContent.trim()) {
+                rotate = current.textContent.trim();
+                current.remove();
+              }
+
+              // flip
+              current = parentDiv.parentElement.nextElementSibling;
+              if (current && current.textContent.trim()) {
+                flip = current.textContent.trim();
+                current.remove();
+              }
+
+              // crop
+              current = parentDiv.parentElement.nextElementSibling;
+              if (current && current.textContent.trim()) {
+                crop = current.textContent.trim();
+                current.remove();
+              }
             }
-       }
-     }
+
+            // Remove direct child divs
+            const directChildDivs = dmOpenApiDiv.querySelectorAll(':scope > div');
+            directChildDivs.forEach((div) => div.remove());
+          }
+
+          let metadataUrl = getMetadataUrl(a.href);
+
+          if (metadataUrl) {
+            try {
+              const response = await fetch(metadataUrl);
+              if (!response.ok) {
+                console.error(`Failed to fetch metadata: ${response.status}`);
+                continue;
+              }
+
+              const metadata = await response.json();
+              const smartcrops = metadata?.repositoryMetadata?.smartcrops;
+
+              if (smartcrops) {
+                const pic = document.createElement('picture');
+                pic.style.textAlign = 'center';
+
+                const originalUrl = new URL(a.href);
+                const baseUrl = a.href.split('?')[0];
+
+                const hasQueryParams = originalUrl.toString().includes('?');
+                const paramSeparator = hasQueryParams ? '&' : '?';
+
+                // Sort crop keys by width, descending
+                const cropOrder = Object.keys(smartcrops).sort((a, b) => {
+                  const widthA = parseInt(smartcrops[a].width, 10);
+                  const widthB = parseInt(smartcrops[b].width, 10);
+                  return widthB - widthA;
+                });
+
+                const largestCropWidth = Math.max(
+                  ...cropOrder.map((cropName) =>
+                    parseInt(smartcrops[cropName].width, 10)
+                  )
+                );
+
+                const extraLargeBreakpoint = Math.max(
+                  largestCropWidth + 1,
+                  1300
+                );
+
+                const advanceModifierParams = `${rotate ? '&rotate=' + rotate : ''}${
+                  flip ? '&flip=' + flip.toLowerCase() : ''
+                }${crop ? '&crop=' + crop.toLowerCase() : ''}${
+                  preset ? '&preset=' + preset : ''
+                }`;
+
+                // Extra-large screen source
+                const sourceWebpExtraLarge = document.createElement('source');
+                sourceWebpExtraLarge.type = 'image/webp';
+                sourceWebpExtraLarge.srcset = `${originalUrl}${paramSeparator}quality=85&preferwebp=true${advanceModifierParams}`;
+                sourceWebpExtraLarge.media = `(min-width: ${extraLargeBreakpoint}px)`;
+                pic.appendChild(sourceWebpExtraLarge);
+
+                // Smartcrop sources
+                cropOrder.forEach((cropName) => {
+                  const crop = smartcrops[cropName];
+                  if (crop) {
+                    const minWidth = parseInt(crop.width, 10);
+                    const smartcropParam = `${paramSeparator}smartcrop=${cropName}`;
+
+                    const sourceWebp = document.createElement('source');
+                    sourceWebp.type = 'image/webp';
+                    sourceWebp.srcset = `${originalUrl}${smartcropParam}&quality=85&preferwebp=true${advanceModifierParams}`;
+
+                    if (minWidth > 0) {
+                      sourceWebp.media = `(min-width: ${minWidth}px)`;
+                    }
+
+                    pic.appendChild(sourceWebp);
+                  }
+                });
+
+                // Fallback image
+                const fallbackUrl = `${originalUrl}${paramSeparator}quality=85&preferwebp=true${advanceModifierParams}`;
+
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                img.src = fallbackUrl;
+
+                img.setAttribute('alt', a.href !== a.title ? a.title || '' : '');
+
+                pic.appendChild(img);
+                dmOpenApiDiv.appendChild(pic);
+              }
+            } catch (error) {
+              console.error('Error fetching or processing metadata:', error);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 function whatBlockIsThis(element) {
