@@ -466,7 +466,12 @@ export async function decorateDMImages(main) {
     // Early exclude videos
     const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg', '.m4v', '.mkv'];
     const isVideoAsset = videoExtensions.some((ext) => hrefLower.includes(ext));
-    if (isVideoAsset || blockName === 'video') continue;
+
+    // Skip blocks that handle their own image decoration
+    const excludedBlocks = ['video', 'carousel', 'cards'];
+    if (isVideoAsset || excludedBlocks.includes(blockName)) return;
+
+    // if (isVideoAsset || blockName === 'video') continue;
 
     // Extract advanced modifiers only for dynamic-media blocks
     if (blockName === 'dm-openapi' || blockName === 'dynamic-media-image') {
