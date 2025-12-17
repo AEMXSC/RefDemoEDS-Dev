@@ -8,13 +8,12 @@
   {
     "id": "section",
     "components": [
-      "button",
       "action-button",
+      "button",
       "cards",
       "carousel",
       "columns",
       "contentfragment",
-      "button",
       "dm-template",
       "dynamic-media-image",
       "fragment",
