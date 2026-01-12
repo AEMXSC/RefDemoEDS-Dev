@@ -8,6 +8,7 @@
   {
     "id": "section",
     "components": [
+      "accordion",
       "action-button",
       "button",
       "cards",

@@ -5267,7 +5267,7 @@
     ]
   },
   {
-    "id": "form-accordion",
+    "id": "accordion",
     "fields": [
       {
         "component": "container",
