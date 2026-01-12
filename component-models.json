@@ -742,30 +742,37 @@
                 "value": ""
               },
               {
-                "name": "PNG – Enhanced Clarity",
-                "value": "Always_Use_a_Preset"
-              },
-              {
                 "name": "Border with Color",
                 "value": "border"
-              }
+              },
+              {
+                "name": "Grayscale",
+                "value": "grayscale"
+              }           
             ]
         },
         {
-          "component": "text",
+          "component": "container",
+          "label": "Border Settings",
+          "name": "borderSettings",
           "valueType": "string",
-          "name": "extend",
-          "label": "Extend",
-          "description": "Provide value in Left,top,right,bottom format e.g. 10,10,10,10 to add a 10 pixel padding on all sides",
-          "condition": { "==": [{ "var": "preset" }, "border"] }
-        },
-        {
-          "component": "text",
-          "valueType": "string",
-          "name": "borderbgcolor",
-          "label": "Border Color",
-          "description": "Provide hexcode of the color without # e.g. FFFFFF",
-          "condition": { "==": [{ "var": "preset" }, "border"] }
+          "condition": { "==": [{ "var": "preset" }, "border"] },
+          "fields": [
+            {
+              "component": "text",
+              "valueType": "string",
+              "name": "extend",
+              "label": "Extend",
+              "description": "Provide value in Left,top,right,bottom format e.g. 10,10,10,10 to add a 10 pixel padding on all sides"
+            },
+            {
+              "component": "text",
+              "valueType": "string",
+              "name": "borderbgcolor",
+              "label": "Border Color",
+              "description": "Provide hexcode of the color without # e.g. FFFFFF"
+            }
+          ]
         },
         {
             "component": "select",
