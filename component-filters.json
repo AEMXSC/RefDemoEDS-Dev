@@ -8,15 +8,15 @@
   {
     "id": "section",
     "components": [
-      "button",
+      "accordion",
       "action-button",
+      "button",
       "cards",
       "carousel",
       "columns",
       "contentfragment",
-      "button",
-      "dm-asset",
       "dm-template",
+      "dynamic-media-image",
       "fragment",
       "hero",
       "image",
@@ -30,7 +30,6 @@
       "tabs",
       "form",
       "forex",
-      "accordion",
       "embed-adaptive-form",
       "find-a-doctor"
     ]
