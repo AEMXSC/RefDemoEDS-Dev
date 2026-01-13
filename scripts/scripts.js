@@ -425,16 +425,27 @@ export function getMetadataUrl(url) {
 }
 
 /**
- * Decorates Dynamic Media images by modifying their URLs to include specific parameters
- * and creating a <picture> element with different sources for different image formats and sizes.
- *
- * @param {HTMLElement} main - The main container element that includes the links to be processed.
- */
-export async function decorateDMImages(main) {
+   * Decorates Dynamic Media images by modifying their URLs to include specific parameters
+   * and creating a <picture> element with different sources for different image formats and sizes.
+   *
+   * @param {HTMLElement} main - The main container element that includes the links to be processed.
+   */
+  export async function decorateDMImages(main) {
 	
+	const allBlocks = Array.from(main.querySelectorAll('.dm-openapi, .dynamic-media-image'));
+
+	for (const block of allBlocks) {
+	  	const links = block.querySelectorAll('a[href]');
+		// If no links exist, hide everything else within the block
+		if (links.length === 0) {
+			Array.from(block.children).forEach((child) => {
+				child.style.display = 'none';
+			});
+		}
+	}
+
 	const links = Array.from(main.querySelectorAll('a[href]'));
-	const images = Array.from(main.querySelectorAll('.dynamic-media-image img'));
-  
+
 	for (const a of links) {
 	  let href = a.href;
 	  const hrefLower = href.toLowerCase();
@@ -442,8 +453,7 @@ export async function decorateDMImages(main) {
   
 	  const isGifFile = hrefLower.endsWith('.gif');
 	  const containsOriginal = href.includes('/original/');
-	  const dmOpenApiDiv =
-		a.closest('.dm-openapi') || a.closest('.dynamic-media-image');
+	  const dmOpenApiDiv = a.closest('.dm-openapi') || a.closest('.dynamic-media-image');
   
 	  if (!dmOpenApiDiv) continue;
   
@@ -556,7 +566,6 @@ export async function decorateDMImages(main) {
 	  };
 	  
 	  const advanceModifierParams = buildAdvanceModifierParams();
-	
 	  const originalUrl = new URL(href);
 	  const hasQueryParams = originalUrl.toString().includes('?');
 	  const paramSeparator = hasQueryParams ? '&' : '?';
@@ -583,8 +592,7 @@ export async function decorateDMImages(main) {
 		  }
   
 		  const smartcrops = metadata?.repositoryMetadata?.smartcrops;
-      const mimeType = metadata?.repositoryMetadata?.["dc:format"];
-
+		  const mimeType = metadata?.repositoryMetadata?.["dc:format"];
 		  if (smartcrops){
 				// Build picture and sources
 				pic.style.textAlign = 'center';
@@ -646,7 +654,7 @@ export async function decorateDMImages(main) {
 	  pic.appendChild(img);
 	  dmOpenApiDiv.appendChild(pic);
 	}
-}
+  }
 
 /**
  * Decorates Dynamic Media video blocks by finding video asset links
