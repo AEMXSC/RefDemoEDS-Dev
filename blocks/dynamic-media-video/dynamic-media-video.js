@@ -56,32 +56,19 @@ export default async function decorate(block) {
 	  let loop = '';
 	  let muted = '';
 	  let showControls = '';
-
-    const siblings = [];
-    let current = block.nextElementSibling;
-
-    // Collect up to 4 siblings (preset, rotate, flip, crop) in order
-    while (current && siblings.length < 7) {
-      siblings.push(current);
-      current = current.nextElementSibling;
-    }
-
-    // Helper to safely consume a sibling element's trimmed text and remove it
-    const consumeSiblingText = (el) => {
-      if (!el) return '';
-      const text = el.textContent?.trim() || '';
-      if (text) el.remove();
-      return text;
+    
+    const children = Array.from(block.children);
+    // Helper function to safely extract text content from a child div
+    const getTextFromChild = (index) => {
+      const childDiv = children[index];
+      if (!childDiv) return '';
+      const pElement = childDiv.querySelector('p');
+      return pElement?.textContent?.trim() || '';
     };
 
-    // Order matters: preset, rotate, flip, crop
-    if (siblings.length > 0) {
-      autoplay = consumeSiblingText(siblings.shift()) || false;
-      loop = consumeSiblingText(siblings.shift());
-      muted = consumeSiblingText(siblings.shift());
-      showControls = consumeSiblingText(siblings.shift());
-    }
-		
+    autoplay = getTextFromChild(1)?.toLowerCase() === 'true' ? true : false ;
+    loop = getTextFromChild(2)?.toLowerCase() === 'true' ? true : false;
+    muted = getTextFromChild(3)?.toLowerCase() === 'true' ? true : false;
 
     Array.from(block.children).forEach((child) => {
 				child.style.display = 'none';
@@ -98,9 +85,11 @@ export default async function decorate(block) {
     }
 
     // Controls behavior depends on the viewer version; simplest pattern:
+    /*
     if (!showControls) {
       params.hidecontrolbar = '1';
     }
+    */
 
     // Instantiate viewer
     const s7videoviewer = new window.dmviewers.VideoViewer({
