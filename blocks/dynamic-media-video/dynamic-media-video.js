@@ -181,18 +181,42 @@ export default async function decorate(block) {
   // Generate a stable container ID
   block.id = block.id || `dm-video-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
-  // --- Read configuration from data-attributes ---
-  // Example: <div class="dm-video" data-autoplay="true" data-loop="true" data-muted="true" data-controls="true">
-  const getBool = (attrName, defaultValue = false) => {
-    const value = block.dataset[attrName];
-    if (value == null) return defaultValue;
-    return String(value).toLowerCase() === 'true';
+  // --- Read configuration from block rows (Universal Editor) or data-attributes ---
+  // Universal Editor outputs fields as rows: [video, videoTitle, autoplay, loop, muted]
+  // Data attributes can override: data-autoplay, data-loop, data-muted, data-controls, data-chapters
+
+  const children = Array.from(block.children);
+
+  // Helper to get text content from a block row by index
+  const getTextFromRow = (index) => {
+    const row = children[index];
+    if (!row) return '';
+    // Check for text in div > div > p or just div > p structure
+    const textEl = row.querySelector('p') || row.querySelector('div');
+    return textEl?.textContent?.trim() || row.textContent?.trim() || '';
   };
 
-  const autoplay = getBool('autoplay', false);
-  const loop = getBool('loop', false);
-  const muted = getBool('muted', false);
-  const showControls = getBool('controls', true);
+  // Helper to get boolean from data attribute or block row
+  const getBoolFromDataOrRow = (attrName, rowIndex, defaultValue = false) => {
+    // First check data attribute (higher priority)
+    if (block.dataset[attrName] != null) {
+      return String(block.dataset[attrName]).toLowerCase() === 'true';
+    }
+    // Fall back to block row content
+    const rowValue = getTextFromRow(rowIndex);
+    if (rowValue) {
+      return rowValue.toLowerCase() === 'true';
+    }
+    return defaultValue;
+  };
+
+  // Row indices based on component model: [0: video, 1: videoTitle, 2: autoplay, 3: loop, 4: muted]
+  const autoplay = getBoolFromDataOrRow('autoplay', 2, false);
+  const loop = getBoolFromDataOrRow('loop', 3, false);
+  const muted = getBoolFromDataOrRow('muted', 4, false);
+  const showControls = block.dataset.controls != null
+    ? String(block.dataset.controls).toLowerCase() === 'true'
+    : true; // Default to showing controls
 
   // Optional: Chapters from data attribute as JSON
   // e.g. data-chapters='[{"label":"Intro","time":0},{"label":"Feature A","time":30}]'
