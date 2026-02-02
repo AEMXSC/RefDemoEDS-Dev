@@ -1,7 +1,6 @@
 import { loadScript } from '../../scripts/aem.js';
 
 const DM_VIDEO_VIEWER_URL = 'https://delivery-p153659-e1620914.adobeaemcloud.com/adobe/assets/urn:aaid:aem:dmviewers-html5/as/DMVideoViewer.js';
-
 let dmViewerPromise;
 
 /**
