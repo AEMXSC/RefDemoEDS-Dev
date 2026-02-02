@@ -865,6 +865,12 @@
             "label": "Crop",
             "description": "Crop the final image using four values: left, top, width, and height, all in percentages. For example, 10p,10p,50p,50p means crop the image starting 10% from the left and top, and take 50% of the image's width and height",
             "valueType": "string"
+        },
+        {
+          "component": "text",
+          "name": "advance_parameters",
+          "label": "Advance Parameters",
+          "valueType": "string"
         }
       ]
   },
