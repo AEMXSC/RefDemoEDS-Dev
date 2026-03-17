@@ -1,11 +1,3 @@
-/*
-import { patternDecorate } from '../../scripts/blockTemplate.js';
-
-export default async function decorate(block) {
-  patternDecorate(block);
-}
-*/
-
 import { createOptimizedPicture } from '../../scripts/aem.js';
 import { moveInstrumentation } from '../../scripts/scripts.js';
 
