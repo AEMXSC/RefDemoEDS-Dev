@@ -28,6 +28,19 @@ import {
   getHostname
 } from './utils.js';
 
+const experimentationConfig = {
+	prodHost: 'www.referencedemo.adobe.com',
+	audiences: {
+		mobile: () => window.innerWidth < 600,
+		desktop: () => window.innerWidth >= 600,
+		// define your custom audiences here as needed
+	},
+};
+import {
+	runExperimentation,
+	showExperimentationRail,
+} from './experiment-load.js';
+
 function addPreconnect(origin) {
   try {
     if (!origin) return;
@@ -305,6 +318,7 @@ async function renderWBDataLayer() {
  */
 async function loadEager(doc) {
   setPageLanguage();
+  await runExperimentation(doc, experimentationConfig);
   // Preconnect dynamically to speed up LCP fetch without hardcoding hosts
   try {
     addPreconnect(window.location.origin);
@@ -395,6 +409,7 @@ async function loadLazy(doc) {
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
   loadFonts();
+  await showExperimentationRail(doc, experimentationConfig);
 }
 
 function isDMOpenAPIUrl(src) {
