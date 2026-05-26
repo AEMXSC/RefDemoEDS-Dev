@@ -718,14 +718,18 @@ export default async function decorate(block) {
             }
   });
 
-  // Hide config rows but keep them in DOM (like cards block)
+  // Hide config rows but keep them in DOM
   const configRows = Array.from(block.children);
   configRows.forEach((row) => {
     row.style.display = 'none';
   });
 
   // Set layout class
-  block.className = `find-doctor ${layout}`;
+  block.classList.add('find-doctor');
+  String(layout || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .forEach((cls) => block.classList.add(cls));
   
   // Create config object for compatibility
   const config = {

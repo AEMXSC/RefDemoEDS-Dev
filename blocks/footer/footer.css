@@ -15,6 +15,21 @@ footer .footer > div {
   padding: 40px 24px 24px;
 }
 
+body.securbank-theme footer .footer > div {
+   max-width: 1260px;
+}
+
+body.securbank-theme footer .footer .section-horizontal-widths > .default-content-wrapper {
+  text-align: right;
+}
+
+body.securbank-theme footer .footer .section-horizontal-widths > .default-content-wrapper p strong {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 footer .footer p {
   margin: 0;
 }
@@ -33,6 +48,33 @@ footer .footer a {
 footer .footer a:hover {
   color: var(--main-accent-color);
 }
+
+/* Fly theme footer - custom dark background */
+body.fly-theme footer {
+  background-color: #01153a;
+  color: #ffffff;
+  margin-top: auto;
+}
+
+body.fly-theme footer .footer a {
+  color: #ffffff;
+}
+
+body.fly-theme footer .footer a:hover {
+  color: var(--main-accent-color);
+}
+
+/* Fly theme - sticky footer layout */
+body.fly-theme {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+body.fly-theme main {
+  flex: 1;
+}
+
 
 @media (width >= 900px) {
   footer .footer > div {

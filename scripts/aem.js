@@ -151,7 +151,55 @@ function setup() {
     }
   }
 }
-
+/**
+ * Protects the AEM Sidekick from being opened by default
+ */
+function hideSidekick() {
+  // Check if URL contains required ZDP parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasZdpId = urlParams.has('zdp-id');
+  const hasZdpEnv = urlParams.has('zdp-env');
+  const hasZdpToken = urlParams.has('zdp-token');
+  
+  // Only proceed if all required ZDP parameters are present
+  if (!hasZdpId || !hasZdpEnv || !hasZdpToken) {
+    console.log('ZDP parameters not found, skipping sidekick hiding');
+    return;
+  }
+  
+  const sidekick = document.querySelector('aem-sidekick');
+  
+  if (sidekick) {
+    // Sidekick found, hide it if open
+    if (sidekick.hasAttribute('open')) {
+      console.log('hiding sidekick');
+      sidekick.setAttribute('open', false);
+    }
+  } else {
+    // Sidekick not found yet, watch for it to be added
+    console.log('sidekick not found, watching for it...');
+    
+    const observer = new MutationObserver((mutations, obs) => {
+      const sidekickElement = document.querySelector('aem-sidekick');
+      if (sidekickElement) {
+        console.log('sidekick found by observer, hiding...');
+        if (sidekickElement.hasAttribute('open')) {
+          sidekickElement.setAttribute('open', false);
+        }
+        obs.disconnect(); // Stop observing once found
+      }
+    });
+    
+    // Watch body for added child nodes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: false
+    });
+    
+    // Stop observing after 10 seconds as a safety measure
+    setTimeout(() => observer.disconnect(), 10000);
+  }
+}
 /**
  * Auto initialization.
  */
@@ -160,6 +208,8 @@ function init() {
   setup();
   sampleRUM.collectBaseURL = window.origin;
   sampleRUM();
+  setupSectionItemWidthsUE();
+  setupBlockCustomClassUE();
 }
 
 /**
@@ -293,6 +343,134 @@ function getMetadata(name, doc = document) {
     .map((m) => m.content)
     .join(', ');
   return meta || '';
+}
+
+/**
+ * Absolute href for AEM web-optimized image delivery (`ImageRef._dynamicUrl`).
+ * @param {{ _dynamicUrl?: string, _publishUrl?: string, _authorUrl?: string }} damImageURL
+ * @returns {string|null}
+ * @see https://experienceleague.adobe.com/en/docs/experience-manager-learn/getting-started-with-aem-headless/how-to/images
+ */
+function resolveAemDynamicImageHref(damImageURL) {
+  const { _dynamicUrl, _publishUrl, _authorUrl } = damImageURL || {};
+  if (!_dynamicUrl) return null;
+  const originRef = _publishUrl || _authorUrl;
+  try {
+    if (_dynamicUrl.startsWith('http://') || _dynamicUrl.startsWith('https://')) {
+      return _dynamicUrl;
+    }
+    if (!originRef) return null;
+    const { origin } = new URL(originRef);
+    const path = _dynamicUrl.startsWith('/') ? _dynamicUrl : `/${_dynamicUrl}`;
+    return `${origin}${path}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Responsive product image using AEM `_dynamicUrl` + `width` query params (srcset + sizes).
+ * Returns null if `_dynamicUrl` is missing (persisted GraphQL must request it on `ImageRef`).
+ * @param {{ _dynamicUrl?: string, _publishUrl?: string, _authorUrl?: string }} damImageURL
+ * @param {string} alt
+ * @param {boolean} eager
+ * @param {number[]} widths Descending not required; sorted internally
+ * @param {string} sizes
+ * @param {string|null} fetchpriority
+ * @returns {HTMLPictureElement|null}
+ */
+function createResponsiveAemDamPicture(
+  damImageURL,
+  alt = '',
+  eager = false,
+  widths = [320, 640],
+  sizes = '200px',
+  fetchpriority = null,
+) {
+  const baseHref = resolveAemDynamicImageHref(damImageURL);
+  if (!baseHref) return null;
+
+  const sorted = [...widths].sort((a, b) => b - a);
+  const picture = document.createElement('picture');
+  const img = document.createElement('img');
+  img.alt = alt;
+  img.loading = eager ? 'eager' : 'lazy';
+  if (eager || fetchpriority) {
+    img.setAttribute('fetchpriority', fetchpriority || 'high');
+  }
+  img.setAttribute('sizes', sizes);
+
+  const parts = sorted.map((w) => {
+    try {
+      const u = new URL(baseHref);
+      u.searchParams.set('width', String(w));
+      if (!u.searchParams.has('preferwebp')) u.searchParams.set('preferwebp', 'true');
+      return `${u.href} ${w}w`;
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+  if (!parts.length) return null;
+  img.setAttribute('srcset', parts.join(', '));
+
+  try {
+    const fallback = new URL(baseHref);
+    fallback.searchParams.set('width', String(sorted[sorted.length - 1]));
+    if (!fallback.searchParams.has('preferwebp')) fallback.searchParams.set('preferwebp', 'true');
+    img.src = fallback.href;
+  } catch {
+    return null;
+  }
+
+  picture.appendChild(img);
+  return picture;
+}
+
+/**
+ * Luma product listing vs PDP image: prefers AEM web-optimized `_dynamicUrl` when GraphQL returns it.
+ * @param {{ _dynamicUrl?: string, _publishUrl?: string, _authorUrl?: string }} damImageURL
+ * @param {string} alt
+ * @param {{ isAuthor?: boolean, eager?: boolean }} options eager=true uses larger renditions (PDP hero)
+ * @returns {HTMLPictureElement|null}
+ */
+function createLumaProductImagePicture(damImageURL, alt = '', { isAuthor = false, eager = false } = {}) {
+  if (damImageURL?._dynamicUrl && (damImageURL._publishUrl || damImageURL._authorUrl)) {
+    const listingWidths = [240, 480];
+    const detailWidths = [480, 960, 1200];
+    const listingSizes = '(max-width: 768px) 42vw, 220px';
+    const detailSizes = '(max-width: 900px) 100vw, min(640px, 55vw)';
+    const widths = eager ? detailWidths : listingWidths;
+    const sizes = eager ? detailSizes : listingSizes;
+    const pic = createResponsiveAemDamPicture(damImageURL, alt, eager, widths, sizes);
+    if (pic) return pic;
+  }
+
+  const imgUrl = isAuthor ? damImageURL?._authorUrl : damImageURL?._publishUrl;
+  if (!imgUrl) return null;
+
+  if (!isAuthor && imgUrl.startsWith('http')) {
+    const picture = document.createElement('picture');
+    const img = document.createElement('img');
+    img.src = imgUrl;
+    img.alt = alt;
+    img.loading = eager ? 'eager' : 'lazy';
+    if (eager) img.setAttribute('fetchpriority', 'high');
+    picture.appendChild(img);
+    return picture;
+  }
+
+  const breakpoints = eager
+    ? [
+      { media: '(min-width: 900px)', width: '800' },
+      { media: '(min-width: 600px)', width: '600' },
+      { width: '400' },
+    ]
+    : [
+      { media: '(min-width: 900px)', width: '600' },
+      { media: '(min-width: 600px)', width: '400' },
+      { width: '320' },
+    ];
+  return createOptimizedPicture(imgUrl, alt, eager, breakpoints);
 }
 
 /**
@@ -521,8 +699,298 @@ function decorateSections(main) {
         }
       });
       sectionMeta.parentNode.remove();
+
+      // Section text color from UE field (same pattern as hero; key may be sec-color or section-text-color from label)
+      applySectionBackgroundImage(section, meta['sec-bg-image'] ?? meta.image);
+      applySectionTextColor(section, meta['sec-color'] ?? meta['section-text-color']);
+      applySectionCustomClass(section, meta['sec-custom-styles'] ?? meta['custom-class']);
+      applySectionTextAlignment(section, meta['sec-alignment'] ?? meta['text-alignment']);
+    } else {
+      // Apply custom class for sections with data-sec-custom-styles set directly (no section-metadata block)
+      applySectionCustomClass(section, section.dataset.secCustomStyles);
     }
+    applySectionItemWidths(section);
   });
+}
+
+/**
+ * Applies section text color from UE field (hex). Sets --section-text-color and class section--custom-text-color.
+ * @param {Element} section The section element
+ * @param {string} colorValue Hex color (e.g. #fff or fff)
+ */
+/**
+ * Applies custom class(es) to section from UE field (same as hero Custom Styles). Space-separated for multiple.
+ * @param {Element} section The section element
+ * @param {string} value Class name(s), space-separated
+ */
+function applySectionCustomClass(section, value) {
+  const prev = (section.dataset.secCustomStyles ?? '').trim();
+  if (prev) {
+    prev.split(/[\s,]+/).filter(Boolean).forEach((c) => section.classList.remove(c));
+  }
+  delete section.dataset.secCustomStyles;
+  const next = (value ?? '').toString().trim();
+  if (next) {
+    section.dataset.secCustomStyles = next;
+    next.split(/[\s,]+/).filter(Boolean).forEach((c) => section.classList.add(c));
+  }
+}
+
+/**
+ * Applies custom class(es) to a block from UE/config. Space-separated for multiple.
+ * @param {Element} block The block element
+ * @param {string} value Class name(s), space-separated
+ */
+function applyBlockCustomClass(block, value) {
+  const prev = (block.dataset.blockCustomClass ?? '').trim();
+  if (prev) {
+    prev.split(/\s+/).filter(Boolean).forEach((c) => block.classList.remove(c));
+  }
+  delete block.dataset.blockCustomClass;
+  const next = (value ?? '').toString().trim();
+  if (next) {
+    block.dataset.blockCustomClass = next;
+    next.split(/\s+/).filter(Boolean).forEach((c) => block.classList.add(c));
+  }
+}
+
+function applySectionTextColor(section, colorValue) {
+  const normalizeColor = (s) => {
+    const t = String(s ?? '').trim();
+    if (!t) return '';
+    const hashMatch = t.match(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+    if (hashMatch) return `#${hashMatch[1]}`;
+    return t;
+  };
+  const isHexColor = (s) => {
+    const t = normalizeColor(s);
+    if (!t) return false;
+    if (t.startsWith('#')) return /^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{6}$/.test(t);
+    return /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(t);
+  };
+  const toHex = (s) => {
+    const t = normalizeColor(s);
+    if (t.startsWith('#')) return t;
+    return /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(t) ? `#${t}` : t;
+  };
+  const raw = normalizeColor(colorValue ?? section.dataset.secColor ?? section.dataset.sectionTextColor ?? '');
+  section.classList.remove('section--custom-text-color');
+  section.style.removeProperty('--section-text-color');
+  if (raw && isHexColor(raw)) {
+    section.style.setProperty('--section-text-color', toHex(raw));
+    section.classList.add('section--custom-text-color');
+    section.dataset.secColor = raw;
+  } else {
+    delete section.dataset.secColor;
+  }
+}
+
+function applySectionTextAlignment(section, alignmentValue) {
+  const value = (alignmentValue ?? section.dataset.secAlignment ?? '').toString().trim().toLowerCase();
+  if (['left', 'center', 'right'].includes(value)) {
+    section.dataset.secAlignment = value;
+  } else {
+    delete section.dataset.secAlignment;
+    section.removeAttribute('data-sec-alignment');
+  }
+}
+
+/**
+ * Applies horizontal layout and percentage widths to section items when sec-item-widths is set.
+ * When section has multiple direct children (e.g. default-content-wrapper + sign-in-wrapper),
+ * applies flex to the section and widths to those children so image and block sit side by side (e.g. 40,60).
+ * Otherwise applies to immediate children of .default-content-wrapper.
+ * @param {Element} section The section element
+ */
+function applySectionItemWidths(section) {
+  const raw = (section.dataset?.secItemWidths
+    || section.getAttribute('data-sec-item-widths')
+    || '').trim();
+  const isSectionBg = (el) => el.tagName === 'PICTURE' && el.classList?.contains('section-bg');
+  let sectionChildren = [...section.children].filter((el) =>
+    !el.classList?.contains('section-metadata') && !isSectionBg(el));
+  let inner = section.querySelector('.default-content-wrapper') || sectionChildren[0];
+  if (!inner) return;
+
+  const clearWidths = (el) => {
+    if (!el) return;
+    el.style.flex = '';
+    el.style.maxWidth = '';
+    el.style.boxSizing = '';
+  };
+  const bgPic = section.querySelector('picture.section-bg');
+  if (bgPic) clearWidths(bgPic);
+
+  const widths = raw ? raw.split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => !Number.isNaN(n) && n > 0 && n <= 100) : [];
+  const dcw = section.querySelector('.default-content-wrapper');
+  if (widths.length > 0 && dcw && dcw.children.length > 1) {
+    const otherCount = sectionChildren.length - 1;
+    const totalItems = dcw.children.length + otherCount;
+    if (totalItems === widths.length) {
+      const newWrappers = [];
+      [...dcw.children].forEach((child) => {
+        const wrap = document.createElement('div');
+        wrap.appendChild(child);
+        newWrappers.push(wrap);
+      });
+      const idx = sectionChildren.indexOf(dcw);
+      newWrappers.forEach((w) => section.insertBefore(w, dcw));
+      dcw.remove();
+      sectionChildren = [...section.children].filter((el) =>
+        !el.classList?.contains('section-metadata') && !isSectionBg(el));
+      inner = section.querySelector('.default-content-wrapper') || sectionChildren[0];
+    }
+  }
+
+  const clearSectionFlex = () => {
+    section.style.display = '';
+    section.style.flexDirection = '';
+    section.style.flexWrap = '';
+    section.style.gap = '';
+    sectionChildren.forEach(clearWidths);
+  };
+  const clearInnerFlex = () => {
+    inner.style.display = '';
+    inner.style.flexDirection = '';
+    inner.style.flexWrap = '';
+    inner.style.gap = '';
+    [...inner.querySelectorAll(':scope > *')].forEach(clearWidths);
+    inner.querySelectorAll('[style*="flex:"], [style*="max-width"]').forEach(clearWidths);
+  };
+  if (!raw) {
+    section.classList.remove('section-horizontal-widths');
+    clearSectionFlex();
+    clearInnerFlex();
+    return;
+  }
+  if (widths.length === 0) return;
+  const immediateChildren = [...inner.querySelectorAll(':scope > *')];
+  const useSectionLevel = sectionChildren.length >= widths.length && sectionChildren.length > 1;
+  if (useSectionLevel) {
+    clearInnerFlex();
+    section.classList.add('section-horizontal-widths');
+    section.style.display = 'flex';
+    section.style.flexDirection = 'row';
+    section.style.flexWrap = 'nowrap';
+    section.style.gap = '24px';
+    sectionChildren.forEach((el, i) => {
+      if (widths[i] != null) {
+        el.style.flex = `0 0 ${widths[i]}%`;
+        el.style.maxWidth = `${widths[i]}%`;
+        el.style.boxSizing = 'border-box';
+      } else {
+        clearWidths(el);
+      }
+    });
+  } else {
+    clearSectionFlex();
+    const set = new Set(immediateChildren);
+    inner.querySelectorAll('[style*="flex:"], [style*="max-width"]').forEach((el) => {
+      if (!set.has(el)) clearWidths(el);
+    });
+    section.classList.add('section-horizontal-widths');
+    inner.style.display = 'flex';
+    inner.style.flexDirection = 'row';
+    inner.style.flexWrap = 'nowrap';
+    inner.style.gap = '24px';
+    immediateChildren.forEach((el, i) => {
+      if (widths[i] != null) {
+        el.style.flex = `0 0 ${widths[i]}%`;
+        el.style.maxWidth = `${widths[i]}%`;
+        el.style.boxSizing = 'border-box';
+      } else {
+        clearWidths(el);
+      }
+    });
+  }
+}
+
+function applySectionBackgroundImage(section, bgImagePath) {
+  const existing = section.querySelector('picture.section-bg');
+  if (existing) existing.remove();
+  section.classList.remove('section-has-bg');
+  const path = (bgImagePath ?? section.dataset.secBgImage ?? '').toString().trim();
+  if (path) {
+    section.dataset.secBgImage = path;
+    const picture = createOptimizedPicture(path, '', false, [{ width: '2000' }]);
+    picture.classList.add('section-bg');
+    const img = picture.querySelector('img');
+    if (img) img.classList.add('sec-img');
+    section.classList.add('section-has-bg');
+    section.prepend(picture);
+  } else {
+    delete section.dataset.secBgImage;
+  }
+}
+
+function setupSectionItemWidthsUE() {
+  const handler = (event) => {
+    const resource = event.detail?.request?.target?.resource;
+    const section = document.querySelector(`.section[data-aue-resource="${resource}"]`);
+    if (!section) return;
+    if (event.type === 'aue:content-details') {
+      const content = event.detail?.content || {};
+      const val = content['sec-item-widths'] ?? content.secItemWidths ?? '';
+      if (val !== '') {
+        section.dataset.secItemWidths = String(val);
+        applySectionItemWidths(section);
+      }
+      const bgVal = content['sec-bg-image'] ?? content.secBgImage ?? content.image ?? '';
+      applySectionBackgroundImage(section, bgVal);
+      const colorVal = content['sec-color'] ?? content.secColor ?? content['section-text-color'] ?? content.sectionTextColor ?? '';
+      applySectionTextColor(section, colorVal);
+      const customClassVal = content['sec-custom-styles'] ?? content.secCustomStyles ?? content['custom-class'] ?? content.customClass ?? '';
+      applySectionCustomClass(section, customClassVal);
+      const alignmentVal = content['sec-alignment'] ?? content.secAlignment ?? content['text-alignment'] ?? content.textAlignment ?? '';
+      applySectionTextAlignment(section, alignmentVal);
+    }
+    if (event.type === 'aue:content-patch') {
+      const patch = event.detail?.patch;
+      if (patch?.name === 'sec-item-widths') {
+        section.dataset.secItemWidths = String(patch.value || '');
+        applySectionItemWidths(section);
+      }
+      if (patch?.name === 'sec-bg-image' || patch?.name === 'image') {
+        applySectionBackgroundImage(section, patch.value ?? '');
+      }
+      if (patch?.name === 'sec-color' || patch?.name === 'section-text-color') {
+        applySectionTextColor(section, patch.value ?? '');
+      }
+      if (patch?.name === 'sec-custom-styles') {
+        applySectionCustomClass(section, patch.value ?? '');
+      }
+      if (patch?.name === 'sec-alignment') {
+        applySectionTextAlignment(section, patch.value ?? '');
+      }
+    }
+  };
+  document.body.addEventListener('aue:content-details', handler);
+  document.body.addEventListener('aue:content-patch', handler);
+}
+
+function setupBlockCustomClassUE() {
+  const handler = (event) => {
+    const resource = event.detail?.request?.target?.resource;
+    const block = resource
+      ? document.querySelector(`.block[data-aue-resource="${resource}"]`)
+      : null;
+    if (!block) return;
+    if (event.type === 'aue:content-details') {
+      const content = event.detail?.content || {};
+      const customClassVal = content['custom-class'] ?? content.customClass ?? '';
+      applyBlockCustomClass(block, customClassVal);
+    }
+    if (event.type === 'aue:content-patch') {
+      const patch = event.detail?.patch;
+      if (patch?.name === 'custom-class' || patch?.name === 'customClass') {
+        applyBlockCustomClass(block, patch.value ?? '');
+      }
+    }
+  };
+  document.body.addEventListener('aue:content-details', handler);
+  document.body.addEventListener('aue:content-patch', handler);
 }
 
 /**
@@ -672,9 +1140,12 @@ async function loadBlock(block) {
 function decorateBlock(block) {
   const shortBlockName = block.classList[0];
   if (shortBlockName && !block.dataset.blockStatus) {
+    const config = readBlockConfig(block) || {};
+    const customClassVal = config['custom-class'] ?? config.customClass ?? '';
     block.classList.add('block');
     block.dataset.blockName = shortBlockName;
     block.dataset.blockStatus = 'initialized';
+    applyBlockCustomClass(block, customClassVal);
     wrapTextNodes(block);
     const blockWrapper = block.parentElement;
     blockWrapper.classList.add(`${shortBlockName}-wrapper`);
@@ -682,15 +1153,83 @@ function decorateBlock(block) {
     if (section) section.classList.add(`${shortBlockName}-container`);
     // eslint-disable-next-line no-use-before-define
     decorateButtons(block);
-  }
+          // Set block ID with shortBlockName and index
+          const blocks = document.querySelectorAll(`.${shortBlockName}`);
+          blocks.forEach((block, index) => {
+            block.id = `${shortBlockName}-${index}`;
+            
+            // Add indexed IDs to images within the block
+            const images = block.querySelectorAll('img');
+            images.forEach((img, imgIndex) => {
+              const imgId = `${shortBlockName}_${index}_image_${imgIndex}`;
+              img.id = imgId;
+            });
+            // Skip content ID generation for blocks that handle it themselves (columns, cards, carousel)
+            const blocksWithCustomIDs = ['columns', 'cards', 'carousel'];
+            if (!blocksWithCustomIDs.includes(shortBlockName)) {
+              // Merge headings (h1-h6) and paragraphs into a single loop for efficiency
+              ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'].forEach((tag) => {
+                const elements = block.querySelectorAll(tag);
+                elements.forEach((el, elIndex) => {
+                  el.id = `${shortBlockName}_${index}_${tag}_${elIndex}`;
+                });
+              });
+            }
+          });
+          }
+          }
+        
+/**
+ * Decorates a default block.
+ * @param {Element} block The block element
+ */
+export function decorateDefaultBlock(main) {
+  const sections = main.querySelectorAll('.section');
+  sections.forEach((section, sectionIndex) => {
+    // Find all default-content-wrapper elements in this section
+    const defaultWrappers = section.querySelectorAll('.default-content-wrapper');
+    defaultWrappers.forEach((wrapper, wrapperIndex) => {
+      wrapper.setAttribute('data-section-content-index', `${sectionIndex}_${wrapperIndex}`);
+      
+      // Add IDs to text elements (overwrite any existing IDs)
+      ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol'].forEach((tag) => {
+        const elements = wrapper.querySelectorAll(tag);
+        let adjustedIndex = 0; // Use a separate counter for adjusted indexing
+        elements.forEach((el) => {
+          // Check if this is a <p> tag containing only an image (picture or img element)
+          if (tag === 'p') {
+            const hasOnlyImage = el.querySelector('picture, img') &&
+                                el.textContent.trim() === '';
+            
+            if (hasOnlyImage) {
+              // Skip ID assignment for <p> tags that only contain images
+              // The image itself will get its own ID separately
+              return; // Skip this element
+            }
+          }
+          
+          el.id = `section_${sectionIndex}_content_${wrapperIndex}_${tag}_${adjustedIndex}`;
+          adjustedIndex++;
+        });
+      });
+    });
+    
+    // Add IDs to images at section level (overwrite any existing IDs)
+    const images = section.querySelectorAll('.default-content-wrapper img');
+    images.forEach((img, imgIndex) => {
+      img.id = `section_${sectionIndex}_image_${imgIndex}`;
+    });
+  });
 }
-
 /**
  * Decorates all blocks in a container element.
  * @param {Element} main The container element
  */
 function decorateBlocks(main) {
-  main.querySelectorAll('div.section > div > div').forEach(decorateBlock);
+  /* Section-level blocks and blocks inside columns (so action-button etc. load and style in columns).
+   * Use both .columns > div > div > div (before columns block is decorated) and .columns-row > div > div
+   * (after columns adds .columns-row) so column blocks are found regardless of load order. */
+  main.querySelectorAll('div.section > div > div, .columns > div > div > div, .columns-row > div > div').forEach(decorateBlock);
 }
 
 /**
@@ -812,8 +1351,11 @@ async function loadSections(element) {
 init();
 
 export {
+  applySectionItemWidths,
   buildBlock,
+  createLumaProductImagePicture,
   createOptimizedPicture,
+  createResponsiveAemDamPicture,
   decorateBlock,
   decorateBlocks,
   decorateButtons,
@@ -838,4 +1380,5 @@ export {
   toClassName,
   waitForFirstImage,
   wrapTextNodes,
+  hideSidekick
 };

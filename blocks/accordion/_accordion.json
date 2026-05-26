@@ -50,6 +50,14 @@
           "value": "",
           "label": "Text",
           "valueType": "string"
+        },
+        {
+          "component": "text",
+          "name": "custom-class",
+          "label": "Custom class",
+          "value": "",
+          "valueType": "string",
+          "description": "Space-separated class names to add to the block"
         }
       ]
     }
@@ -57,7 +65,9 @@
   "filters": [
     {
       "id": "accordion",
-      "components": ["accordion-item"]
+      "components": [
+        "accordion-item"
+      ]
     }
   ]
 }

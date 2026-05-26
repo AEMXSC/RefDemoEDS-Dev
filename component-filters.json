@@ -17,9 +17,9 @@
       "contentfragment",
       "dm-template",
       "dynamic-media-image",
-      "dynamic-media-video",
       "fragment",
       "hero",
+      "iframe",
       "image",
       "quote",
       "teaser",
@@ -32,7 +32,38 @@
       "form",
       "forex",
       "embed-adaptive-form",
-      "find-a-doctor"
+      "find-a-doctor",
+      "flight-search",
+      "flights",
+      "create-account",
+      "child-account-application",
+      "name-change-request",
+      "sign-in",
+      "transfer-funds",
+      "set-up-auto-save",
+      "checkout",
+      "checkout-shipping",
+      "credit-card-application-form",
+      "loan-application-form",
+      "get-offer",
+      "new-account",
+      "loan-calculator",
+      "insurance",
+      "add-external",
+      "confirmation",
+      "feedback",
+      "coffee-quiz-frescopa",
+      "join-us",
+      "test-drive",
+      "cart",
+      "category-products-lister",
+      "new-arrival",
+      "order-confirmation",
+      "order-summary",
+      "product-detail",
+      "product-card",
+      "product-card-list",
+      "build-your-own"
     ]
   },
   {
@@ -62,18 +93,24 @@
   {
     "id": "column",
     "components": [
-      "button",
+      "text",
       "image",
-      "text",      
+      "button",
       "title",
       "video",
-      "dynamic-media-video"
+      "action-button"
     ]
   },
   {
     "id": "tabs",
     "components": [
       "tabs-item"
+    ]
+  },
+  {
+    "id": "product-card-list",
+    "components": [
+      "product-item"
     ]
   },
   {

@@ -101,8 +101,16 @@
           ]
         },
         {
-          "component": "container",
+          "component": "reference",
+          "valueType": "string",
+          "name": "image",
           "label": "Background Image",
+          "description": "Optional background image for this section. For tablet/mobile variants, set Background style to \"Background Image\" and use the options below.",
+          "multi": false
+        },
+        {
+          "component": "container",
+          "label": "Background Image (tablet/mobile)",
           "name": "container",
           "valueType": "string",
           "collapsible": true,
@@ -110,13 +118,6 @@
             "==": [{ "var": "style" }, "bg-image"]
           },
           "fields": [
-            {
-              "component": "reference",
-              "valueType": "string",
-              "name": "image",
-              "label": "Background Image",
-              "multi": false
-            },
             {
               "component": "reference",
               "valueType": "string",
@@ -152,6 +153,42 @@
           "condition": {
             "!=": [{ "var": "style" }, "bg-image"]
           }
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "sec-color",
+          "value": "",
+          "label": "Section text color",
+          "description": "Hex color for section text (e.g. #fff, #000000, or 333). Leave empty for default."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "sec-custom-styles",
+          "value": "",
+          "label": "Custom class",
+          "description": "Additional CSS class name(s) for this section (space-separated for multiple). Same as hero Custom Styles."
+        },
+        {
+          "component": "select",
+          "name": "sec-alignment",
+          "value": "",
+          "label": "Text Alignment",
+          "valueType": "string",
+          "options": [
+            { "name": "Left", "value": "left" },
+            { "name": "Center", "value": "center" },
+            { "name": "Right", "value": "right" }
+          ]
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "sec-item-widths",
+          "value": "",
+          "label": "Item widths (%)",
+          "description": "Comma-separated width percentages for items (e.g. 25,25,50). When set, items are arranged horizontally with these widths."
         }
       ]
     }
@@ -163,6 +200,16 @@
 	      "button",
       	"cards",
       	"carousel",
+      	"checkout",
+      	"checkout-shipping",
+      	"credit-card-application-form",
+      	"loan-application-form",
+      	"get-offer",
+      	"new-account",
+      	"loan-calculator",
+      	"insurance",
+      	"add-external",
+      	"feedback",
       	"columns",
       	"contentfragment",
       	"dm-asset",

@@ -36,27 +36,27 @@
         "rootPath": "/content/cq:tags/world-bank"
       },
       {
-          "component": "select",
-          "name": "theme",
-          "label": "Theme",
-          "options": [
-            {
-              "name": "default",
-              "value": ""
-            },
-            {
-              "name": "Mango Haze",
-              "value": "mango-haze"
-            },
-            {
-              "name": "Lavender Chill",
-              "value": "lavender-chill"
-            },
-             {
-              "name": "Meadow Light",
-              "value": "meadow-light"
-            }
-          ]
+        "component": "select",
+        "name": "theme",
+        "label": "Theme",
+        "options": [
+          {
+            "name": "default",
+            "value": ""
+          },
+          {
+            "name": "Mango Haze",
+            "value": "mango-haze"
+          },
+          {
+            "name": "Lavender Chill",
+            "value": "lavender-chill"
+          },
+          {
+            "name": "Meadow Light",
+            "value": "meadow-light"
+          }
+        ]
       },
       {
         "component": "text",
@@ -73,6 +73,238 @@
         "required": true
       }
     ]
+  },
+  {
+    "id": "cards",
+    "fields": [
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "classes",
+        "label": "Custom Style Classes",
+        "value": "",
+        "description": "Add custom CSS class names (space-separated). Example: feature-cards, image-left, bg-light-gray"
+      }
+    ]
+  },
+  {
+    "id": "category-products-lister",
+    "fields": [
+      {
+        "component": "aem-content",
+        "name": "folder",
+        "label": "Products Folder (Content Fragments)",
+        "multi": false,
+        "validation": {
+          "rootPath": "/content/dam"
+        }
+      },
+      {
+        "component": "aem-tag",
+        "name": "cq:tags",
+        "label": "Tags",
+        "valueType": "string",
+        "rootPath": "/content/cq:tags/lumaproducts"
+      },
+      {
+        "component": "select",
+        "name": "style",
+        "label": "Style Variant",
+        "valueType": "string",
+        "value": "",
+        "description": "Visual style variant for the product listing",
+        "options": [
+          {
+            "name": "Default",
+            "value": ""
+          },
+          {
+            "name": "No Border",
+            "value": "no-border"
+          }
+        ]
+      },
+      {
+        "component": "boolean",
+        "name": "no-background",
+        "label": "No Background",
+        "value": "false",
+        "valueType": "boolean",
+        "description": "Remove media overlay and image brightness filter when enabled."
+      }
+    ]
+  },
+    {
+    "id": "test-drive",
+    "fields": [
+      {
+        "component": "text",
+        "name": "form-title",
+        "label": "Form Title",
+        "value": "Book a Test Drive",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "submit-label",
+        "label": "Submit Button Label",
+        "value": "Book Test Drive",
+        "valueType": "string"
+      },
+      {
+        "component": "reference",
+        "name": "image",
+        "label": "Vehicle Image",
+        "valueType": "string",
+        "description": "Image of the vehicle displayed alongside the form"
+      },
+      {
+        "component": "text",
+        "name": "image-alt",
+        "label": "Vehicle Image Alt Text",
+        "value": "Test drive vehicle",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "eyebrow",
+        "label": "Eyebrow Text",
+        "value": "",
+        "valueType": "string",
+        "description": "Small uppercase label shown above the headline"
+      },
+      {
+        "component": "text",
+        "name": "headline",
+        "label": "Headline",
+        "value": "",
+        "valueType": "string",
+        "description": "Large heading shown next to the vehicle image"
+      },
+      {
+        "component": "text",
+        "name": "subtext",
+        "label": "Subtext",
+        "value": "",
+        "valueType": "string",
+        "description": "Supporting text shown below the headline"
+      },
+      {
+        "component": "text",
+        "name": "car-models",
+        "label": "Car Models (comma-separated)",
+        "value": "Carvelo Sedan, Carvelo SUV, Carvelo Luxury, Carvelo Electric",
+        "valueType": "string",
+        "description": "Comma-separated list of car models for the dropdown"
+      },
+      {
+        "component": "text",
+        "name": "success-message",
+        "label": "Success Message",
+        "value": "Thank you! Your test drive has been booked. We will contact you shortly to confirm your appointment.",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "redirect-url",
+        "label": "Redirect URL (after submit)",
+        "value": "",
+        "valueType": "string",
+        "description": "Optional page to redirect to 2 seconds after successful submission"
+      },
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs for data layer"
+      },
+      {
+        "component": "text",
+        "name": "custom-class",
+        "label": "Custom Class",
+        "value": "",
+        "valueType": "string",
+        "description": "Space-separated CSS class names to add to the block"
+      }
+    ]
+  },
+  {
+    "id": "product-detail",
+    "fields": [
+      {
+        "component": "aem-content",
+        "name": "folder",
+        "label": "Product Folder",
+        "valueType": "string",
+        "required": true,
+        "rootPath": "/content/dam"
+      }
+    ]
+  },
+  {
+    "id": "new-arrival",
+    "fields": [
+      {
+        "component": "aem-content",
+        "name": "folder",
+        "label": "Products Folder (Content Fragments)",
+        "multi": false,
+        "validation": {
+          "rootPath": "/content/dam"
+        }
+      },
+      {
+        "component": "text",
+        "name": "skus",
+        "label": "Product SKUs",
+        "valueType": "string[]",
+        "multi": true
+      }
+    ]
+  },
+  {
+    "id": "cart",
+    "fields": [
+      {
+        "component": "aem-content",
+        "name": "folder",
+        "label": "Product Folder",
+        "valueType": "string",
+        "required": false,
+        "rootPath": "/content/dam"
+      }
+    ]
+  },
+  {
+    "id": "order-summary",
+    "fields": []
+  },
+  {
+    "id": "order-confirmation",
+    "fields": []
   },
   {
     "id": "image",
@@ -165,8 +397,128 @@
           {
             "name": "secondary",
             "value": "secondary"
+          },
+          {
+            "name": "CTA",
+            "value": "cta"
+          },
+          {
+            "name": "negative",
+            "value": "negative"
+          },
+          {
+            "name": "link",
+            "value": "link"
+          },
+          {
+            "name": "custom",
+            "value": "custom"
           }
         ]
+      },
+      {
+        "component": "select",
+        "name": "alignment",
+        "label": "Alignment",
+        "options": [
+          {
+            "name": "Left",
+            "value": "left"
+          },
+          {
+            "name": "Center",
+            "value": "center"
+          },
+          {
+            "name": "Right",
+            "value": "right"
+          }
+        ]
+      },
+      {
+        "component": "boolean",
+        "name": "textUppercase",
+        "label": "Text Uppercase",
+        "value": "true",
+        "valueType": "boolean"
+      },
+      {
+        "component": "text",
+        "name": "eventType",
+        "label": "Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "webhookUrl",
+        "label": "Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "formId",
+        "label": "Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "data",
+        "label": "Custom Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs"
+      },
+      {
+        "component": "text",
+        "name": "backgroundColor",
+        "label": "Background Color",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "backgroundColorOnHover",
+        "label": "Background Color on Hover",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "textColor",
+        "label": "Text Color",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "textColorOnHover",
+        "label": "Text Color on Hover",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "borderColor",
+        "label": "Border Color",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "borderColorOnHover",
+        "label": "Border Color on Hover",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "borderWidth",
+        "label": "Border Width",
+        "value": "",
+        "valueType": "string"
       }
     ]
   },
@@ -178,6 +530,14 @@
         "name": "name",
         "label": "Section Name",
         "description": "The label shown for this section in the Content Tree"
+      },
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "image",
+        "label": "Background Image",
+        "description": "Optional background image for this section.",
+        "multi": false
       },
       {
         "component": "multiselect",
@@ -208,6 +568,132 @@
         "value": "",
         "label": "Text",
         "valueType": "string"
+      },
+      {
+        "component": "select",
+        "name": "imagestyle",
+        "label": "Image Style",
+        "valueType": "string",
+        "value": "",
+        "options": [
+          {
+            "name": "default",
+            "value": ""
+          },
+          {
+            "name": "Compact Style",
+            "value": "compact-style"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "ctastyle",
+        "label": "CTA Style",
+        "valueType": "string",
+        "value": "button",
+        "options": [
+          {
+            "name": "Primary Button",
+            "value": "button"
+          },
+          {
+            "name": "Secondary Button",
+            "value": "button-secondary"
+          },
+          {
+            "name": "Dark Button",
+            "value": "button-dark"
+          }
+        ]
+      },
+      {
+        "component": "aem-content",
+        "name": "link",
+        "label": "Section Link",
+        "description": "Optional link for entire card"
+      },
+      {
+        "component": "boolean",
+        "name": "selectable",
+        "label": "Selectable",
+        "value": "false",
+        "valueType": "boolean"
+      },
+      {
+        "component": "select",
+        "name": "alignment",
+        "label": "Alignment",
+        "options": [
+          {
+            "name": "Left",
+            "value": "left"
+          },
+          {
+            "name": "Center",
+            "value": "center"
+          },
+          {
+            "name": "Right",
+            "value": "right"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "verticalalignment",
+        "label": "Vertical Alignment",
+        "options": [
+          {
+            "name": "Top",
+            "value": "top"
+          },
+          {
+            "name": "Middle",
+            "value": "middle"
+          },
+          {
+            "name": "Bottom",
+            "value": "bottom"
+          }
+        ]
+      },
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs"
+      },
+      {
+        "component": "boolean",
+        "name": "overlaybackground",
+        "label": "Overlay Background",
+        "value": "true",
+        "valueType": "boolean",
+        "description": "Keep the teaser overlay background at 50% opacity. Turn off for a solid black overlay."
       }
     ]
   },
@@ -263,6 +749,195 @@
         "value": "",
         "label": "Text",
         "valueType": "string"
+      },
+      {
+        "component": "boolean",
+        "label": "Enable Underline in Title",
+        "description": "Enable underline in title",
+        "name": "enableunderline",
+        "value": "true",
+        "valueType": "boolean"
+      },
+      {
+        "component": "select",
+        "name": "herolayout",
+        "label": "Hero Layout Style",
+        "options": [
+          {
+            "name": "Default",
+            "value": "overlay"
+          },
+          {
+            "name": "Image Left",
+            "value": "image-left"
+          },
+          {
+            "name": "Image Right",
+            "value": "image-right"
+          },
+          {
+            "name": "Image Top",
+            "value": "image-top"
+          },
+          {
+            "name": "Image Bottom",
+            "value": "image-bottom"
+          },
+          {
+            "name": "Image-Background Text-Left",
+            "value": "image-background-text-left"
+          },
+          {
+            "name": "Image-Background Text-Right",
+            "value": "image-background-text-right"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "ctastyle",
+        "label": "CTA Style",
+        "options": [
+          {
+            "name": "default",
+            "value": ""
+          },
+          {
+            "name": "Button",
+            "value": "button"
+          },
+          {
+            "name": "Button secondary",
+            "value": "button-secondary"
+          },
+          {
+            "name": "Link",
+            "value": "link"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "backgroundstyle",
+        "label": "Background Style",
+        "options": [
+          {
+            "name": "Default",
+            "value": "default"
+          },
+          {
+            "name": "Theme Dark",
+            "value": "theme-dark"
+          },
+          {
+            "name": "Theme Light",
+            "value": "theme-light"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "alignment",
+        "label": "Alignment",
+        "options": [
+          {
+            "name": "Left",
+            "value": "left"
+          },
+          {
+            "name": "Center",
+            "value": "center"
+          },
+          {
+            "name": "Right",
+            "value": "right"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "verticalalignment",
+        "label": "Vertical Alignment",
+        "options": [
+          {
+            "name": "Top",
+            "value": "top"
+          },
+          {
+            "name": "Middle",
+            "value": "middle"
+          },
+          {
+            "name": "Bottom",
+            "value": "bottom"
+          }
+        ]
+      },
+      {
+        "component": "boolean",
+        "name": "isfullwidth",
+        "label": "Full Width",
+        "value": "false",
+        "valueType": "boolean"
+      },
+      {
+        "component": "text",
+        "name": "height",
+        "label": "Height",
+        "value": "",
+        "valueType": "string",
+        "description": "e.g. auto or 500px"
+      },
+      {
+        "component": "text",
+        "name": "color",
+        "label": "Text Color",
+        "value": "",
+        "valueType": "string",
+        "description": "e.g. #f9e322"
+      },
+      {
+        "component": "aem-content",
+        "name": "link",
+        "label": "Section Link",
+        "description": "Optional link for entire hero section"
+      },
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonwebhookurl",
+        "label": "Button Webhook URL",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttonformid",
+        "label": "Button Form ID",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "text",
+        "name": "buttondata",
+        "label": "Button Data",
+        "value": "",
+        "valueType": "string",
+        "description": "Comma-separated key,value pairs e.g. key1,value1,key2,value2"
+      },
+      {
+        "component": "boolean",
+        "name": "textoverlay",
+        "label": "Text Overlay",
+        "value": "true",
+        "valueType": "boolean",
+        "description": "Keep the hero text overlay enabled. Turn off for transparent text background and darker image."
       }
     ]
   },

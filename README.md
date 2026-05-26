@@ -1,6 +1,6 @@
 # Reference Demo Framework (for AEM EDS)
 
-**Build your Own Demos for EDS**
+This project supports the **migration of all DSN Public projects to Edge Delivery Services (EDS)**. Migration has already started with **WKND Fly**; this repo also drives the **WKND Ref** demo used for new features and reference implementations.
 - Custom Themes (with and without code)
 - Dynamic Media Templates
 - Dynamic Media Open API & native Dynamic Media Blocks

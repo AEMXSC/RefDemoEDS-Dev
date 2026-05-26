@@ -15,7 +15,9 @@ import {
   getMetadata,
   loadScript,
   toClassName,
-  toCamelCase
+  toCamelCase,
+  decorateDefaultBlock,
+  hideSidekick
 } from './aem.js';
 import { picture, source, img } from './dom-helpers.js';
 
@@ -28,18 +30,8 @@ import {
   getHostname
 } from './utils.js';
 
-const experimentationConfig = {
-	prodHost: 'www.referencedemo.adobe.com',
-	audiences: {
-		mobile: () => window.innerWidth < 600,
-		desktop: () => window.innerWidth >= 600,
-		// define your custom audiences here as needed
-	},
-};
-import {
-	runExperimentation,
-	showExperimentationRail,
-} from './experiment-load.js';
+// Import dataLayer management (available immediately)
+import './datalayer.js';
 
 function addPreconnect(origin) {
   try {
@@ -88,6 +80,35 @@ export function isAuthorEnvironment() {
     return true;
   }*/
   //return false;
+}
+
+export function normalizeAemPath(path) {
+  if (!path) return path;
+  let pathname = path;
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      pathname = new URL(path).pathname;
+    } catch {
+      return path;
+    }
+  }
+  if (!pathname.startsWith('/content/')) return pathname;
+  if (isAuthorEnvironment()) {
+    return pathname.endsWith('.html') ? pathname : `${pathname}.html`;
+  }
+  return pathname.replace(/^\/content\/[^/]+\/language-masters/, '').replace(/\.html$/, '');
+}
+
+export function normalizeCategoryValue(value) {
+  const rawValue = String(value || '').trim();
+  const normalized = rawValue
+    .split(':')
+    .pop()
+    .replace(/-/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 /**
@@ -194,31 +215,9 @@ function decorateSectionImages(doc) {
     const fallbackImg = img({ src: desktopSrc, alt: '', class: 'sec-img', loading: 'lazy' });
     pic.appendChild(fallbackImg);
 
-    // Mark and insert as first child
+    // Mark and insert as first child (no height set; section height follows content/CSS)
     section.classList.add('section-has-bg');
     section.prepend(pic);
-
-    // Compute and lock section height to image height (based on current width)
-    const updateHeight = () => {
-      if (fallbackImg.naturalWidth > 0 && fallbackImg.naturalHeight > 0) {
-        const ratio = fallbackImg.naturalHeight / fallbackImg.naturalWidth;
-        const width = section.getBoundingClientRect().width;
-        const height = Math.round(width * ratio);
-        section.style.minHeight = '';
-        section.style.height = `${height}px`;
-      }
-    };
-
-    if (fallbackImg.complete) {
-      updateHeight();
-    } else {
-      fallbackImg.addEventListener('load', updateHeight, { once: true });
-    }
-
-    // Recalculate on viewport changes
-    const onResize = () => updateHeight();
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
   });
 }
 
@@ -274,6 +273,45 @@ function decorateButtons(main) {
   libDecorateButtons(main);
 }
 
+export function decorateTitleAlignment(container) {
+  const scope = container || document;
+  const processed = new Set();
+  const wrappers = [];
+
+  scope.querySelectorAll('[data-aue-model="title"]').forEach((el) => wrappers.push(el));
+  scope.querySelectorAll('[data-aue-prop="alignment"]').forEach((el) => {
+    const wrapper = el.closest('[data-aue-resource]');
+    if (wrapper) wrappers.push(wrapper);
+  });
+
+  wrappers.forEach((wrapper) => {
+    if (!wrapper || processed.has(wrapper)) return;
+    processed.add(wrapper);
+
+    const titleEl = wrapper.querySelector('h1, h2, h3, h4, h5, h6, [data-aue-prop="title"]');
+    if (!titleEl) return;
+
+    const alignmentSource = wrapper.querySelector('[data-aue-prop="alignment"]');
+    const alignment = (
+      alignmentSource?.getAttribute('data-aue-value')
+      || alignmentSource?.getAttribute('value')
+      || alignmentSource?.textContent
+      || wrapper.getAttribute('data-alignment')
+      || wrapper.dataset?.alignment
+      || ''
+    ).trim().toLowerCase();
+
+    wrapper.classList.remove('title--alignment-left', 'title--alignment-center', 'title--alignment-right');
+    titleEl.classList.remove('title--alignment-left', 'title--alignment-center', 'title--alignment-right');
+
+    if (['left', 'center', 'right'].includes(alignment)) {
+      const alignmentClass = `title--alignment-${alignment}`;
+      wrapper.classList.add(alignmentClass);
+      titleEl.classList.add(alignmentClass);
+    }
+  });
+}
+
 /**
  * Decorates the main element.
  * @param {Element} main The main element
@@ -285,6 +323,9 @@ export function decorateMain(main) {
   decorateIcons(main);
   buildAutoBlocks(main);
   decorateSections(main);
+  decorateTitleAlignment(main);
+  // Apply section background images as soon as section metadata (e.g. data-image) is set
+  decorateSectionImages(document);
   decorateBlocks(main);
   decorateDMImages(main);
 }
@@ -318,7 +359,6 @@ async function renderWBDataLayer() {
  */
 async function loadEager(doc) {
   setPageLanguage();
-  await runExperimentation(doc, experimentationConfig);
   // Preconnect dynamically to speed up LCP fetch without hardcoding hosts
   try {
     addPreconnect(window.location.origin);
@@ -330,6 +370,7 @@ async function loadEager(doc) {
   } catch (e) {
     // ignore
   }
+
   decorateTemplateAndTheme();
   renderWBDataLayer();
   const main = doc.querySelector('main');
@@ -347,6 +388,65 @@ async function loadEager(doc) {
   } catch (e) {
     // do nothing
   }
+}
+
+const CONSENT_MODAL_KEY = 'consentModalDecision';
+
+function getStoredConsentDecision() {
+  try {
+    return sessionStorage.getItem(CONSENT_MODAL_KEY);
+  } catch (error) {
+    return null;
+  }
+}
+
+function storeConsentDecision(value) {
+  if (!value) return;
+  try {
+    sessionStorage.setItem(CONSENT_MODAL_KEY, value);
+  } catch (error) {
+    // ignore storage errors
+  }
+}
+
+function hideConsentModal(modal) {
+  if (!modal) return;
+  modal.classList.remove('consent-visible');
+}
+
+function initConsentModal() {
+  const modal = document.getElementById('consentModal');
+  if (!modal || modal.dataset.consentInitialized === 'true') return false;
+  const stored = getStoredConsentDecision();
+  if (stored) {
+    hideConsentModal(modal);
+    modal.dataset.consentInitialized = 'true';
+    return true;
+  }
+  modal.classList.add('consent-visible');
+  const attachHandler = (id, decisionValue) => {
+    const button = modal.querySelector(`#${id}`);
+    if (!button) return;
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      storeConsentDecision(decisionValue);
+      hideConsentModal(modal);
+    });
+  };
+  attachHandler('allow', 'allow');
+  attachHandler('disable', 'disable');
+  modal.dataset.consentInitialized = 'true';
+  return true;
+}
+
+function ensureConsentModalHandled() {
+  if (initConsentModal()) return;
+  const observer = new MutationObserver(() => {
+    if (initConsentModal()) {
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
 /**
@@ -399,7 +499,43 @@ async function loadEager(doc) {
  */
 async function loadLazy(doc) {
   const main = doc.querySelector('main');
-  await loadSections(main);
+  const deferredSelector = '.section.home-getoffer-container';
+  const deferredSections = [...main.querySelectorAll(deferredSelector)];
+  const regularSections = [...main.querySelectorAll('div.section:not(.home-getoffer-container)')];
+
+  for (let i = 0; i < regularSections.length; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await loadSection(regularSections[i]);
+  }
+
+  deferredSections.forEach((section) => {
+    const measuredHeight = Math.max(section.offsetHeight || 0, 480);
+    section.style.minHeight = `${measuredHeight}px`;
+
+    const finalizeDeferredLoad = async () => {
+      if (section.dataset.sectionStatus === 'loading' || section.dataset.sectionStatus === 'loaded') return;
+      await loadSection(section);
+      section.style.minHeight = '';
+    };
+
+    if (!('IntersectionObserver' in window)) {
+      finalizeDeferredLoad();
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect();
+        finalizeDeferredLoad();
+      }
+    }, {
+      rootMargin: '300px 0px',
+      threshold: 0.01,
+    });
+
+    observer.observe(section);
+  });
+
   decorateSectionImages(doc);
   const { hash } = window.location;
   const element = hash ? doc.getElementById(hash.substring(1)) : false;
@@ -409,7 +545,8 @@ async function loadLazy(doc) {
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
   loadFonts();
-  await showExperimentationRail(doc, experimentationConfig);
+  ensureConsentModalHandled();
+  
 }
 
 function isDMOpenAPIUrl(src) {

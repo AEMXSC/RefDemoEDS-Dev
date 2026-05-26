@@ -429,6 +429,188 @@ async function applyCFTheme(themeCFReference) {
 
 
 /**
+ * Creates user profile dropdown with sign-out option
+ * @param {Element} container - Target container for the profile UI
+ * @param {string} langCode - Current language code
+ * @param {boolean} inlineInTools - Whether the profile should render inside nav tools
+ */
+function createUserProfile(container, langCode, inlineInTools = false) {
+  const firstName = window.getDataLayerProperty
+    ? window.getDataLayerProperty("person.name.firstName")
+    : null;
+  const userName = firstName || "User";
+
+  let host = container;
+  if (inlineInTools) {
+    container.querySelector('.sign-in-btn')?.remove();
+    host = container.querySelector('.user-profile-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'user-profile-host';
+      const langSwitcher = container.querySelector('.lang-switcher');
+      container.insertBefore(host, langSwitcher || null);
+    }
+    host.replaceChildren();
+  } else {
+    host.replaceChildren();
+    host.setAttribute("aria-expanded", "false");
+  }
+
+  // Create user profile container
+  const userProfile = document.createElement("div");
+  userProfile.className = "user-profile";
+  userProfile.style.position = "relative";
+
+  // Create user button (icon + name)
+  const userButton = document.createElement("button");
+  userButton.type = "button";
+  userButton.className = "user-profile-btn";
+  userButton.setAttribute("aria-haspopup", "menu");
+  userButton.setAttribute("aria-expanded", "false");
+  userButton.setAttribute("aria-label", `User menu for ${userName}`);
+
+  // User icon (SVG)
+  const userIcon = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "svg"
+  );
+  userIcon.setAttribute("class", "user-icon");
+  userIcon.setAttribute("width", "24");
+  userIcon.setAttribute("height", "24");
+  userIcon.setAttribute("viewBox", "0 0 24 24");
+  userIcon.setAttribute("fill", "currentColor");
+  userIcon.innerHTML = `
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+  `;
+
+  // User name
+  const userNameSpan = document.createElement("span");
+  userNameSpan.className = "user-name";
+  userNameSpan.textContent = userName;
+
+  userButton.append(userIcon, userNameSpan);
+
+  // Create dropdown menu
+  const userMenu = document.createElement("div");
+  userMenu.className = "user-menu";
+  userMenu.setAttribute("role", "menu");
+  userMenu.style.cssText = "display: none; position: absolute; top: 100%; right: 0; z-index: 1000;";
+
+  // Sign out button
+  const signOutButton = document.createElement("button");
+  signOutButton.type = "button";
+  signOutButton.className = "sign-out-btn";
+  signOutButton.setAttribute("role", "menuitem");
+  signOutButton.textContent = "Sign out";
+  signOutButton.addEventListener("click", () => handleSignOut(langCode));
+
+  userMenu.appendChild(signOutButton);
+
+  // Toggle dropdown on click
+  userButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const expanded = userButton.getAttribute("aria-expanded") === "true";
+    userButton.setAttribute("aria-expanded", expanded ? "false" : "true");
+    if (!inlineInTools) {
+      host.setAttribute("aria-expanded", expanded ? "false" : "true");
+    }
+    userMenu.style.display = expanded ? "none" : "block";
+    userProfile.classList.toggle("open", !expanded);
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!userProfile.contains(e.target)) {
+      userButton.setAttribute("aria-expanded", "false");
+      if (!inlineInTools) {
+        host.setAttribute("aria-expanded", "false");
+      }
+      userMenu.style.display = "none";
+      userProfile.classList.remove("open");
+    }
+  });
+
+  // Close dropdown on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      userButton.setAttribute("aria-expanded", "false");
+      if (!inlineInTools) {
+        host.setAttribute("aria-expanded", "false");
+      }
+      userMenu.style.display = "none";
+      userProfile.classList.remove("open");
+    }
+  });
+
+  userProfile.append(userButton, userMenu);
+  host.append(userProfile);
+}
+
+/**
+ * Handles user sign-out
+ * @param {string} langCode - Current language code
+ */
+function handleSignOut(langCode) {
+  // Clear authentication flag
+  localStorage.removeItem("project_user_logged_in");
+
+  // Optional: Clear other user data (uncomment if needed)
+  // localStorage.removeItem('project_registered_user');
+  // localStorage.removeItem('com.adobe.reactor.dataElements.Profile - Email');
+
+  // Reset dataLayer to canonical initial state from scripts/datalayer.js
+  if (typeof window.resetDataLayerToInitial === 'function') {
+    window.resetDataLayerToInitial();
+  } else if (window.updateDataLayer) {
+    window.updateDataLayer({ page: {}, product: {}, mortgage: {}, partnerData: {}, project: { id: 'securfinancial2' }, wizard: {} }, true);
+  }
+
+  // Redirect to home page
+  const homeUrl = langCode === "en" ? "/" : `/${langCode}`;
+  window.location.href = homeUrl;
+}
+
+function usesLumaStyleHeader() {
+  return document.body.classList.contains('luma-theme')
+    || document.body.classList.contains('citi-signal-theme')
+    || document.body.classList.contains('frescopa-theme');
+}
+
+function addLumaCartIcon(container, langCode) {
+  if (!container || !usesLumaStyleHeader() || container.querySelector('.cart-icon')) {
+    return;
+  }
+
+  const cartLink = document.createElement('a');
+  cartLink.href = `/${langCode}/cart`;
+  cartLink.className = 'cart-icon';
+  cartLink.setAttribute('aria-label', 'Shopping Cart');
+  cartLink.setAttribute('title', 'Shopping Cart');
+
+  const cartBadge = document.createElement('span');
+  cartBadge.className = 'cart-badge';
+  cartBadge.textContent = '0';
+  cartBadge.style.display = 'none';
+  cartLink.appendChild(cartBadge);
+  container.append(cartLink);
+
+  const updateCartCount = () => {
+    const cartData = window.getDataLayerProperty
+      ? window.getDataLayerProperty('cart')
+      : null;
+    const count = cartData?.productCount || 0;
+
+    cartBadge.textContent = count;
+    cartBadge.style.display = count > 0 ? 'flex' : 'none';
+    cartLink.setAttribute('aria-label', `Shopping Cart (${count} items)`);
+  };
+
+  updateCartCount();
+  document.addEventListener('dataLayerUpdated', updateCartCount);
+}
+
+
+/**
  * loads and decorates the header, mainly the nav
  * @param {Element} block The header block element
  */
@@ -496,11 +678,44 @@ export default async function decorate(block) {
         }
       });
     });
+
+    // Hide all nav items after the first 4 for unauthenticated users on secur-financial theme only.
+    const navItems = navSections.querySelectorAll(':scope .default-content-wrapper > ul > li');
+    const isUserLoggedIn = localStorage.getItem('project_user_logged_in') === 'true';
+    if (document.body.classList.contains('securbank-theme') && !isUserLoggedIn && navItems.length > 4) {
+      for (let i = 4; i < navItems.length; i++) {
+        navItems[i].classList.add('nav-auth-hidden');
+      }
+    }
   }
 
-  const navTools = nav.querySelector('.nav-tools');
+  let navTools = nav.querySelector('.nav-tools');
+  if (!navTools && usesLumaStyleHeader()) {
+    navTools = document.createElement('div');
+    navTools.className = 'nav-tools';
+    nav.append(navTools);
+  }
   if (navTools) {
     const contentWrapper = nav.querySelector('.nav-tools > div[class = "default-content-wrapper"]');
+    const targetContainer = contentWrapper || navTools;
+    addLumaCartIcon(targetContainer, langCode);
+    // Find the <li> that contains the Sign In link so we can replace it with the user profile
+    const signInLi = nav.querySelector('.nav-sections a[href*="sign-in"]')?.closest('li');
+    // Add User Profile in place of Sign In when logged in
+    const isLoggedIn = localStorage.getItem("project_user_logged_in") === "true";
+    if (isLoggedIn) {
+      if (signInLi) signInLi.classList.add('nav-auth-hidden');
+      createUserProfile(targetContainer, langCode, true);
+    } else if (!targetContainer.querySelector('.sign-in-btn')) {
+      const signInLink = document.createElement('a');
+      signInLink.href = `/${langCode}/sign-in`;
+      signInLink.className = 'sign-in-btn';
+      signInLink.textContent = 'Sign in';
+      signInLink.title = 'Sign-In';
+      signInLink.setAttribute('aria-label', 'Sign In');
+      targetContainer.append(signInLink);
+    }
+
     // Language switcher (minimal UI)
     try {
       const currentLang = getLanguage();
