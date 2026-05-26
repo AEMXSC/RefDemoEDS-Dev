@@ -33,6 +33,14 @@
           "value": "",
           "label": "Attribution",
           "valueType": "string"
+        },
+        {
+          "component": "text",
+          "name": "custom-class",
+          "label": "Custom class",
+          "value": "",
+          "valueType": "string",
+          "description": "Space-separated class names to add to the block"
         }
       ]
     }

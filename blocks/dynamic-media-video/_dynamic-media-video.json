@@ -57,6 +57,14 @@
           "label": "Muted",
           "description": "Start the video muted",
           "valueType": "boolean"
+        },
+        {
+          "component": "text",
+          "name": "custom-class",
+          "label": "Custom class",
+          "value": "",
+          "valueType": "string",
+          "description": "Space-separated class names to add to the block"
         }
       ]
     }

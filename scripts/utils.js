@@ -29,6 +29,7 @@ export const INTERNAL_PAGES = ['/footer', '/nav', '/fragments', '/data', '/draft
 let lang;
 import { fetchPlaceholders } from './aem.js';
 import { isAuthorEnvironment } from './scripts.js';
+const DEFAULT_AEM_AUTHOR_HOSTNAME = 'https://author-p189874-e1977911.adobeaemcloud.com';
 
 /**
  * Extracts the site name from the current URL pathname
@@ -73,8 +74,43 @@ export async function getHostname() {
     if (hostname) {
       return hostname;
     }
+    return DEFAULT_AEM_AUTHOR_HOSTNAME;
   } catch (error) {
     console.warn('Error fetching placeholders for hostname:', error);
+    return DEFAULT_AEM_AUTHOR_HOSTNAME;
+  }
+}
+
+function extractEnvironmentFromHostname(hostnameValue) {
+  if (!hostnameValue || typeof hostnameValue !== 'string') return undefined;
+  const trimmed = hostnameValue.trim();
+  if (!trimmed) return undefined;
+  try {
+    const hostname = /^https?:\/\//i.test(trimmed)
+      ? new URL(trimmed).hostname
+      : trimmed;
+    const envMatch = hostname.match(/(p\d+-e\d+)/i);
+    return envMatch ? envMatch[1] : undefined;
+  } catch (error) {
+    const envMatch = trimmed.match(/(p\d+-e\d+)/i);
+    return envMatch ? envMatch[1] : undefined;
+  }
+}
+
+/**
+ * Fetch environment identifier from placeholders.
+ * @returns {string|undefined} Environment id (for example: p12345-e67890)
+ */
+export async function getEnvironmentValue() {
+  try {
+    const hostnameFromPlaceholders = await getHostname();
+    const envFromHostname = extractEnvironmentFromHostname(hostnameFromPlaceholders);
+    if (envFromHostname) return envFromHostname;
+
+    return extractEnvironmentFromHostname(window?.location?.hostname);
+  } catch (error) {
+    console.warn('Error fetching placeholders for environment:', error);
+    return undefined;
   }
 }
 

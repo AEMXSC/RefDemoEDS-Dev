@@ -141,4 +141,39 @@
 .default-button-dark a.button:active::after {
   transform: translateX(0);
 }
-  
+
+/*
+ * Hide all AUE metadata in action-button so title/style/label never show as text (author + live).
+ * JS replaces block content with the button only; these rules hide props before JS or in EDS.
+ */
+.action-button [data-aue-prop="title"],
+.action-button [data-aue-prop="style"],
+.action-button [data-aue-prop="label"],
+.action-button [data-aue-prop="eventType"],
+.action-button [data-aue-prop="webhookUrl"],
+.action-button [data-aue-prop="formId"],
+.action-button [data-aue-prop="data"],
+.action-button [data-aue-prop="alignment"],
+.action-button [data-aue-prop="textUppercase"],
+.action-button [data-aue-prop="backgroundColor"],
+.action-button [data-aue-prop="backgroundColorOnHover"],
+.action-button [data-aue-prop="textColor"],
+.action-button [data-aue-prop="textColorOnHover"],
+.action-button [data-aue-prop="borderColor"],
+.action-button [data-aue-prop="borderColorOnHover"],
+.action-button [data-aue-prop="borderWidth"],
+.action-button [data-aue-prop="customStyles"] {
+  display: none !important;
+}
+
+.action-button div:has(> [data-aue-prop="title"]),
+.action-button div:has(> [data-aue-prop="style"]),
+.action-button div:has(> [data-aue-prop="label"]),
+.action-button div:has(> [data-aue-prop="eventType"]),
+.action-button div:has(> [data-aue-prop="webhookUrl"]),
+.action-button div:has(> [data-aue-prop="formId"]),
+.action-button div:has(> [data-aue-prop="data"]),
+.action-button div:has(> [data-aue-prop="alignment"]),
+.action-button div:has(> [data-aue-prop="customStyles"]) {
+  display: none !important;
+}

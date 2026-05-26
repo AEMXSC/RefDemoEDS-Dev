@@ -35,7 +35,14 @@
           "value": "",
           "valueType": "string",
           "description": "Persisted variation for publish; leave empty for master.",
-          "condition": { "==": [ { "var": "__alwaysFalse" }, true ] }
+          "condition": {
+            "==": [
+              {
+                "var": "__alwaysFalse"
+              },
+              true
+            ]
+          }
         },
         {
           "component": "select",
@@ -62,7 +69,6 @@
               "name": "Image Bottom",
               "value": "image-bottom"
             }
-          
           ]
         },
         {
@@ -83,6 +89,37 @@
               "value": "text-center"
             }
           ]
+        },
+        {
+          "component": "select",
+          "name": "ctastyle",
+          "label": "CTA Style",
+          "options": [
+            {
+              "name": "Link",
+              "value": "cta-link"
+            },
+            {
+              "name": "Primary Button",
+              "value": "cta-button"
+            },
+            {
+              "name": "Secondary Button",
+              "value": "cta-button-secondary"
+            },
+            {
+              "name": "Dark Button",
+              "value": "cta-button-dark"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "name": "custom-class",
+          "label": "Custom class",
+          "value": "",
+          "valueType": "string",
+          "description": "Space-separated class names to add to the block"
         }
       ]
     }

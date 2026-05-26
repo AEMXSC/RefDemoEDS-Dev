@@ -1,4 +1,3 @@
-
 {
   "definitions": [
     {
@@ -21,13 +20,21 @@
     {
       "id": "video",
       "fields": [
-          {
-            "component": "text",
-            "valueType": "string",
-            "required": true,
-            "name": "videoUrl",
-            "label": "Video Url"
-          }        
+        {
+          "component": "text",
+          "valueType": "string",
+          "required": true,
+          "name": "videoUrl",
+          "label": "Video Url"
+        },
+        {
+          "component": "text",
+          "name": "custom-class",
+          "label": "Custom class",
+          "value": "",
+          "valueType": "string",
+          "description": "Space-separated class names to add to the block"
+        }
       ]
     }
   ],

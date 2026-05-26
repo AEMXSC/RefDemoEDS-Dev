@@ -24,6 +24,29 @@
           "component": "aem-content",
           "name": "searchPath",
           "label": "Search Path"
+        },
+        {
+          "component": "select",
+          "name": "searchstyle",
+          "label": "Search Style",
+          "options": [
+            {
+              "name": "Search Bar",
+              "value": "search-bar"
+            },
+            {
+              "name": "Search Icon",
+              "value": "search-icon"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "name": "custom-class",
+          "label": "Custom class",
+          "value": "",
+          "valueType": "string",
+          "description": "Space-separated class names to add to the block"
         }
       ]
     }

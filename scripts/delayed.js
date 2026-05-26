@@ -9,6 +9,7 @@ import {
 import {
   isInternalPage,
 } from './utils.js';
+import { initializeCustomEvents } from './custom-events.js';
 
 // Adobe Target - start
 
@@ -28,7 +29,6 @@ function loadAT() {
 // Adobe Target - end
 
 
-
 // refactor tweetable links function
 /**
  * Opens a popup for the Twitter links autoblock.
@@ -45,11 +45,12 @@ function openPopUp(popUrl) {
  */
 function embedCustomLibraries() {
   const externalLibs = getMetadata('js-files');
-  const libsArray = externalLibs?.split(',').map(url => url.trim());
+  const libsArray = externalLibs?.split(',').map((url) => url.trim()).filter(Boolean) || [];
 
   libsArray.forEach((url, index) => {
     //console.log(`Loading script ${index + 1}: ${url}`);
-    loadScript(`${url}`);
+    loadScript(`${url}`)
+      .catch((error) => console.warn(`[Launch] Failed loading external script ${index + 1}:`, url, error));
   });
   
 }
@@ -99,8 +100,26 @@ function buildTwitterLinks() {
   });
 }
 
+function initializeCustomEventsWhenLaunchReady(timeoutMs = 1000) {
+  if (window._launchReady === true || typeof window._satellite !== 'undefined') {
+    initializeCustomEvents();
+    return;
+  }
+
+  let initialized = false;
+  const initOnce = () => {
+    if (initialized) return;
+    initialized = true;
+    initializeCustomEvents();
+  };
+
+  document.addEventListener('launchReady', initOnce, { once: true });
+  window.setTimeout(initOnce, timeoutMs);
+}
+
+initializeCustomEventsWhenLaunchReady();
+
 if (!window.location.hostname.includes('localhost')) {
-  
   embedCustomLibraries();
   if (window.parent && !(window.parent.location.pathname.indexOf('/canvas/') > -1)) {
     loadAT();
