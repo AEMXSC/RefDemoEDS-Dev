@@ -28,6 +28,13 @@
           "valueType": "string"
         },
         {
+          "component": "boolean",
+          "valueType": "boolean",
+          "name": "enableSmartCrop",
+          "label": "Enable Smart Crop",
+          "value":false
+        },
+        {
           "component": "text",
           "name": "videoTitle",
           "label": "Video Title / Alt Text",

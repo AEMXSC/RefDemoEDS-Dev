@@ -9,7 +9,7 @@ import {
   loadSections,
 } from './aem.js';
 import { decorateRichtext } from './editor-support-rte.js';
-import { decorateMain, decorateDMImages, decorateDMVideos } from './scripts.js';
+import { decorateMain, decorateDMImages} from './scripts.js';
 
 
 async function applyChanges(event) {
