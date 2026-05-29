@@ -440,12 +440,12 @@ export function getMetadataUrl(url) {
 }
 
 /**
- * Decorates Dynamic Media images by modifying their URLs to include specific parameters
- * and creating a <picture> element with different sources for different image formats and sizes.
- *
- * @param {HTMLElement} main - The main container element that includes the links to be processed.
- */
-export async function decorateDMImages(main) {
+   * Decorates Dynamic Media images by modifying their URLs to include specific parameters
+   * and creating a <picture> element with different sources for different image formats and sizes.
+   *
+   * @param {HTMLElement} main - The main container element that includes the links to be processed.
+   */
+  export async function decorateDMImages(main) {
 	
 		const links = Array.from(main.querySelectorAll('a[href]'));
 	
@@ -568,6 +568,16 @@ export async function decorateDMImages(main) {
 				params.push(`preset=${encodeURIComponent(preset)}`);
 			  }
 			}
+
+			// Append advance_parameters (author-provided custom params)
+			if (advanceManualParam) {
+			  // Strip leading '&' to avoid double '&&' when joining
+			  const sanitized = advanceManualParam.replace(/^&+/, '');
+			  if (sanitized) {
+				params.push(sanitized);
+			  }
+			}
+			
 			// Join all parameters with '&' and prepend '&' if there are any
 			return params.length > 0 ? `&${params.join('&')}` : '';
 		  };
@@ -712,7 +722,7 @@ export async function decorateDMImages(main) {
 						}
 				}
 		}
-}
+  }
 
 /**
  * Decorates Dynamic Media video blocks by finding video asset links
