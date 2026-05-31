@@ -197,9 +197,10 @@ export default function decorate(block) {
     assetDiv.style.display = 'none';
   }
 
-  // --- Hide the text overlay div if it has no meaningful authored content ---
-  if (!hasMeaningfulContent(textDiv)) {
-    if (textDiv) textDiv.style.display = 'none';
+  // --- Hide the text overlay div only if it has no meaningful content AND no
+  //     badge (a lone badge should still render above an otherwise-empty hero) ---
+  if (textDiv && !badgeText && !hasMeaningfulContent(textDiv)) {
+    textDiv.style.display = 'none';
   }
 
   // --- Hide all configuration-only divs (everything after asset + text) ---

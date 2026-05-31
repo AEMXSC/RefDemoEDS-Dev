@@ -7,6 +7,17 @@
   position: relative;
   box-shadow: none;
 }
+
+/* The flex column above is for the carousel's own layout. When a carousel
+   shares a section with other blocks, this column's `align-items: flex-start`
+   would otherwise shrink every sibling wrapper to its content width (collapsing
+   e.g. a Hero with a background image into a narrow vertical strip). Keep all
+   non-carousel sibling wrappers stretched to full width. */
+.carousel-container > div:not(.carousel-wrapper) {
+  align-self: stretch;
+  width: 100%;
+}
+
 .carousel-container .carousel-wrapper {
   padding: 0;
   margin: 0;
