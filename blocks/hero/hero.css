@@ -52,6 +52,14 @@
   transition: width .4s ease-in-out;
 }
 
+/* Left-aligned layouts: the title underline hugs the left like the title. */
+.hero.image-left h1::after,
+.hero.image-right h1::after,
+.hero.image-background-text-left h1::after,
+.hero.image-background-text-right h1::after {
+  margin-left: 0;
+}
+
 /* Remove underline when class applied */
 .hero.removeunderline h1::after,
 .hero.removeunderline h2::after,
