@@ -179,6 +179,40 @@
   font-size: var(--body-font-size-s);
 }
 
+/* Collapsible filter groups (Published / Modified / Sort) — the <h4> toggles */
+.search .search-filters .filter-group.collapsible > h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.search .search-filters .filter-group.collapsible > h4::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.search .search-filters .filter-group.collapsible.collapsed > h4 {
+  margin-bottom: 0;
+}
+
+.search .search-filters .filter-group.collapsible.collapsed > h4::after {
+  transform: rotate(-45deg);
+}
+
+/* Hide the option rows while collapsed (keeps the toggle heading visible) */
+.search .search-filters .filter-group.collapsible.collapsed > label {
+  display: none;
+}
+
 /* Tags filter indentation and collapsible groups */
 .search .search-filters .filter-group.tags .tag-collapsible > summary {
   cursor: pointer;

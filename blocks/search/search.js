@@ -1554,12 +1554,36 @@ function renderTagFilters(container, availableTags, selectedTags, onChange, open
   container.append(group);
 }
 
+/**
+ * Turn a filter group into a collapsible section toggled by its <h4> title.
+ * Collapsed by default; the option rows are hidden via CSS when `.collapsed`.
+ */
+function makeCollapsible(group, title, collapsed = true) {
+  group.classList.add('collapsible');
+  if (collapsed) group.classList.add('collapsed');
+  title.setAttribute('role', 'button');
+  title.setAttribute('tabindex', '0');
+  title.setAttribute('aria-expanded', String(!collapsed));
+  const toggle = () => {
+    const isCollapsed = group.classList.toggle('collapsed');
+    title.setAttribute('aria-expanded', String(!isCollapsed));
+  };
+  title.addEventListener('click', toggle);
+  title.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
+  });
+}
+
 function renderDateFilters(container, selected, onChange) {
   const group = document.createElement('div');
   group.className = 'filter-group date-range';
   const title = document.createElement('h4');
   title.textContent = 'Published';
   group.append(title);
+  makeCollapsible(group, title);
 
   const options = [
     { key: 'any', label: 'Any time' },
@@ -1589,6 +1613,7 @@ function renderModifiedFilters(container, selected, onChange) {
   const title = document.createElement('h4');
   title.textContent = 'Modified';
   group.append(title);
+  makeCollapsible(group, title);
 
   const options = [
     { key: 'any', label: 'Any time' },
@@ -1677,6 +1702,7 @@ function renderSortControls(container, selected, onChange) {
   const title = document.createElement('h4');
   title.textContent = 'Sort';
   group.append(title);
+  makeCollapsible(group, title);
 
   const options = [
     { key: 'relevance', label: 'Relevance' },
