@@ -882,8 +882,8 @@
           "valueType": "boolean"
         }
       ]
-  },
-  {
+    },
+    {
       "id": "dynamic-media-video",
       "fields": [
         {
