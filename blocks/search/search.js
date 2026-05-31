@@ -1323,13 +1323,15 @@ function buildExpandedLayout(block) {
 
   const resultsWrap = document.createElement('div');
   resultsWrap.className = 'search-expanded-results';
+  const resultsCount = document.createElement('p');
+  resultsCount.className = 'search-results-count';
   const results = document.createElement('ul');
   results.className = 'search-results';
   results.dataset.h = findNextHeading(block);
   const pagination = document.createElement('nav');
   pagination.className = 'search-pagination';
   pagination.setAttribute('aria-label', 'Search results pagination');
-  resultsWrap.append(results, pagination);
+  resultsWrap.append(resultsCount, results, pagination);
 
   expanded.append(filters, resultsWrap);
   block.append(expanded);
@@ -1844,6 +1846,10 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
 
   const renderFilters = () => {
     filters.innerHTML = '';
+    const heading = document.createElement('h3');
+    heading.className = 'search-filters__heading';
+    heading.textContent = 'Filter Results';
+    filters.append(heading);
     // Type filter (pages vs documents vs images) — placed first so it's the
     // most prominent control. Counts reflect the current matched result set.
     renderTypeFilters(filters, base, selectedTypes, (next) => {
@@ -1905,8 +1911,9 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
     }, openPaths);
     const newGroup = temp.firstElementChild;
     if (!newGroup) return;
-    // Always keep Tags group at the top for consistency
-    const first = filters.firstElementChild;
+    // Always keep Tags group at the top of the filter groups (but below the
+    // "Filter Results" heading) for consistency.
+    const first = filters.querySelector('.filter-group');
     if (first) {
       filters.insertBefore(newGroup, first);
     } else {
@@ -1979,6 +1986,11 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
     const afterTags = applyTagFilter(preTag, selectedTags);
     const afterType = applyTypeFilter(afterTags, selectedTypes);
     const filtered = applySort(afterType, sortOrder);
+    const countEl = block.querySelector('.search-results-count');
+    if (countEl) {
+      const n = filtered.length;
+      countEl.textContent = n === 1 ? '1 result' : `${n} results`;
+    }
     results.innerHTML = '';
     pagination.innerHTML = '';
     if (!filtered.length) {
