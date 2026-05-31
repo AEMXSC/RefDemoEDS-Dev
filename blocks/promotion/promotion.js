@@ -122,11 +122,11 @@ async function getTargetConfig() {
     if (placeholders?.atProperty) {
       atProperty = placeholders.atProperty;
     }
-    if (placeholders?.atjsUrl) {
+    if (placeholders?.atjsurl) {
       // Absolute URL is used as-is; a relative path is resolved against the code base.
-      atjsUrl = /^https?:\/\//i.test(placeholders.atjsUrl)
-        ? placeholders.atjsUrl
-        : `${window.hlx.codeBasePath}${placeholders.atjsUrl.startsWith('/') ? '' : '/'}${placeholders.atjsUrl}`;
+      atjsUrl = /^https?:\/\//i.test(placeholders.atjsurl)
+        ? placeholders.atjsurl
+        : `${window.hlx.codeBasePath}${placeholders.atjsurl.startsWith('/') ? '' : '/'}${placeholders.atjsurl}`;
     }
   } catch (err) {
     logWarn('Could not read Target config from placeholders, using fallbacks:', err);
