@@ -462,9 +462,18 @@ export default async function decorate(block) {
   block.textContent = '';
   block.classList.add('download');
 
-  // Author-controlled colors (fall back to the CSS defaults when empty).
-  if (bgColor) block.style.setProperty('--download-bg', bgColor);
-  if (textColor) block.style.setProperty('--download-text', textColor);
+  // Author-controlled colors. Set them inline (highest specificity, so they win
+  // over any inherited/global color rule) AND as custom properties (used by the
+  // row borders/hover so those track the chosen text color). Child elements use
+  // `color: inherit`, so the inline text color cascades to titles, names, etc.
+  if (bgColor) {
+    block.style.backgroundColor = bgColor;
+    block.style.setProperty('--download-bg', bgColor);
+  }
+  if (textColor) {
+    block.style.color = textColor;
+    block.style.setProperty('--download-text', textColor);
+  }
 
   if (title) {
     const heading = document.createElement('h2');
