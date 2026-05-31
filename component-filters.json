@@ -26,6 +26,7 @@
       "teaser",
       "text",
       "title",
+      "title-block",
       "video",
       "search",
       "separator",
@@ -65,8 +66,9 @@
     "components": [
       "button",
       "image",
-      "text",      
+      "text",
       "title",
+      "title-block",
       "video",
       "dynamic-media-video"
     ]
