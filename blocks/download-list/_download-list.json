@@ -52,7 +52,7 @@
           "name": "fileTypes",
           "label": "File Types",
           "description": "MIME type prefixes or extensions to include (e.g. application/pdf, pdf, doc, xls). Leave empty to include all.",
-          "value": "pdf",
+          "value": "",
           "options": [
             { "name": "PDF", "value": "pdf" },
             { "name": "Word (.doc/.docx)", "value": "doc" },

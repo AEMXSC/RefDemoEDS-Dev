@@ -7,9 +7,9 @@ const TYPE_MATCHERS = {
   doc: (mime, ext) => /msword|officedocument\.wordprocessingml/.test(mime) || ext === 'doc' || ext === 'docx',
   xls: (mime, ext) => /excel|officedocument\.spreadsheetml/.test(mime) || ext === 'xls' || ext === 'xlsx',
   ppt: (mime, ext) => /powerpoint|officedocument\.presentationml/.test(mime) || ext === 'ppt' || ext === 'pptx',
-  image: (mime) => mime.startsWith('image/'),
-  video: (mime) => mime.startsWith('video/'),
-  audio: (mime) => mime.startsWith('audio/'),
+  image: (mime, ext) => mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'avif', 'ico'].includes(ext),
+  video: (mime, ext) => mime.startsWith('video/') || ['mp4', 'webm', 'mov', 'ogg', 'm4v', 'avi', 'mkv'].includes(ext),
+  audio: (mime, ext) => mime.startsWith('audio/') || ['mp3', 'wav', 'm4a', 'aac', 'flac', 'oga'].includes(ext),
   zip: (mime, ext) => mime === 'application/zip' || ext === 'zip',
 };
 
@@ -499,7 +499,11 @@ export default async function decorate(block) {
     return;
   }
 
-  assets = filterAssets(assets, fileTypes);
+  // Hand-picked individual files are shown as-is — the author already curated
+  // them, so the File Types filter only applies to folder/manifest listings.
+  if (!individualPaths.length) {
+    assets = filterAssets(assets, fileTypes);
+  }
   assets = sortAssets(assets, sortBy);
   if (limit > 0) assets = assets.slice(0, limit);
 
