@@ -1,109 +1,105 @@
 import { createOptimizedPicture } from '../../scripts/aem.js';
 import { moveInstrumentation } from '../../scripts/scripts.js';
 import createSlider from '../../scripts/slider.js';
-
+import {
+  applyCarouselImageZoom,
+  finalizeCarouselImageZoom,
+  getConfigText,
+  normalizeZoomMode,
+  readCardRowConfig,
+} from '../../scripts/card-image-zoom.js';
 
 function setCarouselItems(number) {
-    document.querySelector('.carousel > ul')?.style.setProperty('--items-per-view', number);
+  document.querySelector('.carousel > ul')?.style.setProperty('--items-per-view', number);
+}
+
+// A row is a carousel card if it has an image OR enough cells to look like a card
+// (image, text, style, ctastyle, ...). Robust to model changes that add fields.
+function isCardRow(row) {
+  if (row.querySelector('picture, img')) return true;
+  return row.children.length >= 2;
+}
+
+// Carousel-level config rows (autoplay, interval, imageZoom) render as single-cell
+// rows BEFORE the card rows. Detect by content shape and extract.
+function extractCarouselConfig(block) {
+  const config = { autoplay: false, intervalMs: 5000, imageZoom: '' };
+  [...block.children].forEach((row) => {
+    if (isCardRow(row)) return;
+    const cellTexts = [...row.children].map(getConfigText).filter(Boolean);
+    const text = cellTexts.join(' ') || (row.textContent || '').trim();
+    const textLower = text.toLowerCase();
+    const zoomMode = cellTexts.map(normalizeZoomMode).find(Boolean) || normalizeZoomMode(text);
+    if (zoomMode) {
+      config.imageZoom = zoomMode;
+      row.remove();
+      return;
+    }
+    if (textLower === 'true' || textLower === 'false') {
+      config.autoplay = (textLower === 'true');
+      row.remove();
+    } else if (/^\d+$/.test(text)) {
+      const n = parseInt(text, 10);
+      if (n > 0) config.intervalMs = n;
+      row.remove();
+    }
+  });
+  return config;
 }
 
 export default function decorate(block) {
-  let i = 0;
   setCarouselItems(2);
+
+  const carouselConfig = extractCarouselConfig(block);
+  block.dataset.autoplay = carouselConfig.autoplay ? 'true' : 'false';
+  block.dataset.autoplayInterval = String(carouselConfig.intervalMs);
+  if (carouselConfig.imageZoom) {
+    block.dataset.imageZoom = carouselConfig.imageZoom;
+  }
+
   const slider = document.createElement('ul');
   const leftContent = document.createElement('div');
-  
-  // Find the first row index that should be a carousel item
-  // This is typically the first row with 4 children (image, content, style config, cta config)
-  let carouselStartIndex = 0;
-  [...block.children].forEach((row, index) => {
-    if (row.children.length === 4 && carouselStartIndex === 0 && index > 0) {
-      carouselStartIndex = index;
-    }
-  });
-  
-  // If no carousel items found, default to starting after row 3
-  if (carouselStartIndex === 0) {
-    carouselStartIndex = 4;
-  }
-  
+  leftContent.className = 'default-content-wrapper';
+  let hasLeftContent = false;
+
   [...block.children].forEach((row) => {
-    if (i >= carouselStartIndex) {
+    if (isCardRow(row)) {
       const li = document.createElement('li');
-      
-      // Read card style from the third div (index 2)
-      const styleDiv = row.children[2];
-      const styleParagraph = styleDiv?.querySelector('p');
-      const cardStyle = styleParagraph?.textContent?.trim() || 'default';
-      if (cardStyle && cardStyle !== 'default') {
-        li.className = cardStyle;
+
+      const config = readCardRowConfig(row);
+
+      if (config.style && config.style !== 'default') {
+        li.className = config.style;
       }
-      
-      // Read CTA style from the fourth div (index 3)
-      const ctaDiv = row.children[3];
-      const ctaParagraph = ctaDiv?.querySelector('p');
-      const ctaStyle = ctaParagraph?.textContent?.trim() || 'default';
 
       moveInstrumentation(row, li);
       while (row.firstElementChild) li.append(row.firstElementChild);
-      
-      // Process the li children to identify and style them correctly
+
       [...li.children].forEach((div, index) => {
-        // First div (index 0) - Image
         if (index === 0) {
           div.className = 'cards-card-image';
-        }
-        // Second div (index 1) - Content with button
-        else if (index === 1) {
+        } else if (index === 1) {
           div.className = 'cards-card-body';
-        }
-        // Third div (index 2) - Card style configuration
-        else if (index === 2) {
+        } else {
           div.className = 'cards-config';
           const p = div.querySelector('p');
-          if (p) {
-            p.style.display = 'none'; // Hide the configuration text
-          }
-        }
-        // Fourth div (index 3) - CTA style configuration
-        else if (index === 3) {
-          div.className = 'cards-config';
-          const p = div.querySelector('p');
-          if (p) {
-            p.style.display = 'none'; // Hide the configuration text
-          }
-        }
-        // Any other divs
-        else {
-          div.className = 'cards-card-body';
+          if (p) p.style.display = 'none';
         }
       });
-      
-      // Apply CTA styles to button containers
+
       const buttonContainers = li.querySelectorAll('p.button-container');
-      buttonContainers.forEach(buttonContainer => {
-        // Remove any existing CTA classes
-        buttonContainer.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default');
-        // Add the correct CTA class
-        buttonContainer.classList.add(ctaStyle);
+      buttonContainers.forEach((bc) => {
+        bc.classList.remove('default', 'cta-button', 'cta-button-secondary', 'cta-button-dark', 'cta-default');
+        bc.classList.add(config.ctaStyle);
       });
-      
+
       slider.append(li);
     } else {
-      // Skip rows that contain images - they should not be in leftContent
-      // This prevents images from appearing outside/above the carousel
-      const hasImage = row.querySelector('img') || row.querySelector('picture');
-      if (!hasImage) {
-        if (row.firstElementChild?.firstElementChild) {
-          leftContent.append(row.firstElementChild.firstElementChild);
-        }
-        if (row.firstElementChild) {
-          leftContent.append(row.firstElementChild.firstElementChild || '');
-        }
-        leftContent.className = 'default-content-wrapper';
+      hasLeftContent = true;
+      while (row.firstElementChild) {
+        leftContent.append(row.firstElementChild);
       }
     }
-    i += 1;
   });
 
   slider.querySelectorAll('picture > img').forEach((img) => {
@@ -112,8 +108,6 @@ export default function decorate(block) {
     img.closest('picture').replaceWith(optimizedPic);
   });
 
-  // Accessibility: preserve visual style but expose proper heading level to AT
-  // Use aria-level so we don't change font sizes. Default to level 3, or infer from data-heading-level on the block.
   const base = parseInt(block?.dataset?.headingLevel, 10);
   const ariaLevel = Number.isFinite(base) ? Math.min(Math.max(base, 1) + 1, 6) : 3;
   slider.querySelectorAll('h4,h5,h6').forEach((node) => {
@@ -122,7 +116,13 @@ export default function decorate(block) {
   });
 
   block.textContent = '';
-  block.parentNode.parentNode.prepend(leftContent);
+  if (hasLeftContent && block.parentNode?.parentNode) {
+    block.parentNode.parentNode.prepend(leftContent);
+  }
   block.append(slider);
+
+  applyCarouselImageZoom(block, carouselConfig.imageZoom);
+
   createSlider(block);
+  finalizeCarouselImageZoom(block);
 }

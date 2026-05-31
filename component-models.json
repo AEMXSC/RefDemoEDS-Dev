@@ -1036,10 +1036,41 @@
     "id": "carousel",
     "fields": [
       {
-        "component": "reference",
+        "component": "boolean",
+        "valueType": "boolean",
+        "name": "autoplay",
+        "label": "Auto-slide",
+        "description": "Automatically advance to the next slide on a timer. Pauses on hover.",
+        "value": false
+      },
+      {
+        "component": "select",
         "valueType": "string",
-        "name": "card",
-        "value": ""
+        "name": "autoplayInterval",
+        "label": "Auto-slide Interval",
+        "description": "Time between slides when Auto-slide is on.",
+        "value": "5000",
+        "options": [
+          { "name": "3 seconds", "value": "3000" },
+          { "name": "5 seconds", "value": "5000" },
+          { "name": "7 seconds", "value": "7000" },
+          { "name": "10 seconds", "value": "10000" }
+        ],
+        "condition": { "===": [{ "var": "autoplay" }, true] }
+      },
+      {
+        "component": "select",
+        "name": "imageZoom",
+        "label": "Image Zoom Effect",
+        "valueType": "string",
+        "value": "",
+        "description": "Applies to all cards in this carousel.",
+        "options": [
+          { "name": "None", "value": "" },
+          { "name": "Zoom In Effect", "value": "zoom-in" },
+          { "name": "Zoom Out Effect", "value": "zoom-out" },
+          { "name": "Swipe", "value": "big-zoom" }
+        ]
       }
     ]
   },

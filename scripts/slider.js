@@ -143,4 +143,49 @@ export default async function createSlider(block) {
   itemList.forEach((item) => {
     observer.observe(item);
   });
+
+  // ── Auto-slide ────────────────────────────────────────────
+  // Driven by data attributes set on the carousel block by carousel.js
+  //   data-autoplay="true|false"
+  //   data-autoplay-interval="3000|5000|7000|10000"
+  // Pauses on hover (mouseenter), resumes on mouseleave. Pauses permanently
+  // when the user manually navigates with prev/next.
+  const enableAutoplay = (block.dataset.autoplay === 'true');
+  if (enableAutoplay) {
+    const intervalMs = parseInt(block.dataset.autoplayInterval, 10) || 5000;
+    const carousel = block.querySelector('.carousel') || block;
+    const carouselContainer = block.closest('.carousel-container') || block.parentElement;
+    let timer = null;
+
+    const tick = () => {
+      const nextBtnEl = (carouselContainer || document).querySelector('.next');
+      if (nextBtnEl) nextBtnEl.click();
+    };
+
+    const start = () => {
+      if (timer) return;
+      timer = window.setInterval(tick, intervalMs);
+    };
+    const stop = () => {
+      if (!timer) return;
+      window.clearInterval(timer);
+      timer = null;
+    };
+
+    // Hover pause
+    (carouselContainer || carousel).addEventListener('mouseenter', stop);
+    (carouselContainer || carousel).addEventListener('mouseleave', start);
+
+    // Stop on manual navigation
+    moveLeftBtns.forEach((btn) => btn.addEventListener('click', stop, true));
+    moveRightBtns.forEach((btn) => btn.addEventListener('click', stop, true));
+
+    // Pause when tab not visible to save resources
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stop();
+      else start();
+    });
+
+    start();
+  }
 }

@@ -474,10 +474,17 @@
 
 }
 
-@media (width < 768px) { 
+@media (width < 768px) {
 
   .carousel-container .carousel-wrapper .carousel {
     padding: 0 4%;
   }
 
+}
+
+/* Hide config-only cells (style, ctastyle, heading, headingColor, bgColor, textColor)
+   so they don't show as visible flex items inside carousel cards.
+   Same fix as the cards block. */
+.carousel .cards-config {
+  display: none !important;
 }
