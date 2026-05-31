@@ -542,8 +542,8 @@ picture {
    Background Style Variations
 --------------------------- */
 
-/* Theme Dark Background Style */
-.hero.theme-dark {
+/* Theme Dark Background Style — applies to the text box only, never the asset */
+.hero.theme-dark .hero-text {
   background: var(--dark-color);
 }
 
@@ -562,8 +562,8 @@ picture {
   border-color: var(--light-color);
 }
 
-/* Theme Light Background Style */
-.hero.theme-light {
+/* Theme Light Background Style — applies to the text box only, never the asset */
+.hero.theme-light .hero-text {
   background: var(--light-color);
 }
 
@@ -588,11 +588,18 @@ picture {
 .hero.image-background-text-left .hero-text,
 .hero.image-background-text-right .hero-text {
   padding: 20px;
-  background: rgb(0 0 0 / 50%);
   box-sizing: border-box;
   max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+/* Default semi-transparent backdrop for the text box — only when no Text
+   Background Style is chosen, so Theme Dark/Light can take over the box bg. */
+.hero.block.overlay:not(.theme-dark):not(.theme-light) .hero-text,
+.hero.image-background-text-left:not(.theme-dark):not(.theme-light) .hero-text,
+.hero.image-background-text-right:not(.theme-dark):not(.theme-light) .hero-text {
+  background: rgb(0 0 0 / 50%);
 }
 
 /*button theme hero specific*/
