@@ -140,6 +140,14 @@
               "value": "link"
             }
           ]
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "badge",
+          "label": "Badge / Highlight Text",
+          "description": "Optional pill-style label shown above the title.",
+          "value": ""
         }
       ]
     }

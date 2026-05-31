@@ -103,6 +103,7 @@ export default function decorate(block) {
   const backgroundStyle = readProp('backgroundstyle', 4) || 'default';
   const ctaLabel = readProp('ctalabel', 5);
   const ctaStyle = readProp('ctastyle', 7) || 'button';
+  const badgeText = readProp('badge', 8);
 
   // The CTA link (aem-content) renders as an <a> with no stable data-aue-prop,
   // so identify it as the only config div (after asset + text) containing a link.
@@ -176,6 +177,19 @@ export default function decorate(block) {
     anchor.textContent = ctaLabel;
     ctaContainer.appendChild(anchor);
     textDiv.appendChild(ctaContainer);
+  }
+
+  // --- Optional pill-style badge shown above the title ---
+  if (badgeText && textDiv) {
+    const badgeEl = document.createElement('span');
+    badgeEl.className = 'hero__badge';
+    badgeEl.textContent = badgeText;
+    const heading = textDiv.querySelector('h1, h2, h3, h4, h5, h6');
+    if (heading) {
+      heading.parentElement.insertBefore(badgeEl, heading);
+    } else {
+      textDiv.prepend(badgeEl);
+    }
   }
 
   // --- Hide the asset div if it's empty (video link removed, or no asset authored) ---
