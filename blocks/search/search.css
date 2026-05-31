@@ -215,6 +215,9 @@
 
 /* Tags filter indentation and collapsible groups */
 .search .search-filters .filter-group.tags .tag-collapsible > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   cursor: pointer;
   margin: 6px 0;
   font-size: var(--body-font-size-s);
@@ -228,19 +231,20 @@
 .search .search-filters .filter-group.tags .tag-collapsible > summary {
   list-style: none;
 }
-.search .search-filters .filter-group.tags .tag-collapsible > summary::before {
+.search .search-filters .filter-group.tags .tag-collapsible > summary::after {
   content: '';
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 6px;
+  margin-left: 8px;
+  flex-shrink: 0;
   border-right: 2px solid currentColor;
   border-bottom: 2px solid currentColor;
   transform: rotate(-45deg);
   transition: transform 0.15s ease;
   opacity: 0.8;
 }
-.search .search-filters .filter-group.tags .tag-collapsible[open] > summary::before {
+.search .search-filters .filter-group.tags .tag-collapsible[open] > summary::after {
   transform: rotate(45deg);
 }
 
