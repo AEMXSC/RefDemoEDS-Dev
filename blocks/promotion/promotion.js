@@ -328,11 +328,9 @@ async function renderCard(block, cfItem, isAuthor, source = 'default', displaySt
   if (displayStyle) cardClasses.push(displayStyle);
   card.className = cardClasses.join(' ');
 
-  // Dark Style renders the image as an actual <img> so the right panel sizes
-  // to the image's natural aspect ratio — using a CSS background here cropped
-  // the banner vertically. All other display styles keep the background-image
-  // approach for the left/right/top/bottom split layouts.
-  const useBackgroundImage = imgUrl && displayStyle && displayStyle !== 'dark-style';
+  // Split layouts (left/right/top/bottom) use the image as a CSS background;
+  // the default card layout renders an actual <img>.
+  const useBackgroundImage = imgUrl && displayStyle;
   if (useBackgroundImage) {
     card.style.backgroundImage = `url(${imgUrl})`;
   } else if (imgUrl) {

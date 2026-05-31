@@ -47,8 +47,7 @@
             { "name": "Image Left", "value": "image-left" },
             { "name": "Image Right", "value": "image-right" },
             { "name": "Image Top", "value": "image-top" },
-            { "name": "Image Bottom", "value": "image-bottom" },
-            { "name": "Dark Style", "value": "dark-style" }
+            { "name": "Image Bottom", "value": "image-bottom" }
           ]
         },
         {
@@ -66,6 +65,7 @@
           "name": "mbox",
           "label": "Target Mbox Name",
           "valueType": "string",
+          "required": true,
           "value": "target-global-mbox",
           "description": "The Adobe Target mbox name for personalization. Leave as 'target-global-mbox' for page-level activities."
         }
