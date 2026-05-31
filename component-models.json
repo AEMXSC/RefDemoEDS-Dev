@@ -604,6 +604,60 @@
     ]
   },
   {
+    "id": "promotion",
+    "fields": [
+      {
+        "component": "aem-content-fragment",
+        "name": "reference",
+        "label": "Default Content Fragment",
+        "valueType": "string",
+        "required": true,
+        "variationName": "contentFragmentVariation",
+        "description": "The default content fragment to display. At runtime, Adobe Target may replace this with a personalized offer."
+      },
+      {
+        "component": "text",
+        "name": "contentFragmentVariation",
+        "label": "Selected Variation",
+        "value": "",
+        "valueType": "string",
+        "description": "Persisted variation for publish; leave empty for master.",
+        "condition": { "==": [ { "var": "__alwaysFalse" }, true ] }
+      },
+      {
+        "component": "select",
+        "name": "displaystyle",
+        "label": "Display Style",
+        "options": [
+          { "name": "Default (card)", "value": "" },
+          { "name": "Image Left", "value": "image-left" },
+          { "name": "Image Right", "value": "image-right" },
+          { "name": "Image Top", "value": "image-top" },
+          { "name": "Image Bottom", "value": "image-bottom" },
+          { "name": "Dark Style", "value": "dark-style" }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "alignment",
+        "label": "Text Alignment",
+        "options": [
+          { "name": "Center", "value": "text-center" },
+          { "name": "Left", "value": "text-left" },
+          { "name": "Right", "value": "text-right" }
+        ]
+      },
+      {
+        "component": "text",
+        "name": "mbox",
+        "label": "Target Mbox Name",
+        "valueType": "string",
+        "value": "target-global-mbox",
+        "description": "The Adobe Target mbox name for personalization. Leave as 'target-global-mbox' for page-level activities."
+      }
+    ]
+  },
+  {
     "id": "hero",
     "fields": [
       {
