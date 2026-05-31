@@ -501,6 +501,10 @@
             "value": "default-button-link"
           },
           {
+            "name": "Link (Light / On dark)",
+            "value": "default-button-link-light"
+          },
+          {
             "name": "Secondary Button",
             "value": "default-button-secondary"
           },
@@ -509,6 +513,26 @@
             "value": "default-button-dark"
           }
         ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "alignment",
+        "label": "Alignment",
+        "value": "",
+        "options": [
+          { "name": "Left (default)", "value": "" },
+          { "name": "Center", "value": "btn-align-center" },
+          { "name": "Right", "value": "btn-align-right" }
+        ]
+      },
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "icon",
+        "label": "Icon Image",
+        "description": "Optional small image shown before the button label.",
+        "multi": false
       }
     ]
   },
