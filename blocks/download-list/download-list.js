@@ -456,9 +456,15 @@ export default async function decorate(block) {
   const sortBy = config.sortby || config['sort by'] || 'name';
   const limit = parseInt(config.limit || config['max items'] || '0', 10) || 0;
   const downloadLabel = (config.downloadlabel || config['download button label'] || '').trim();
+  const bgColor = (config.bgcolor || config['background color'] || '').trim();
+  const textColor = (config.textcolor || config['text color'] || '').trim();
 
   block.textContent = '';
   block.classList.add('download');
+
+  // Author-controlled colors (fall back to the CSS defaults when empty).
+  if (bgColor) block.style.setProperty('--download-bg', bgColor);
+  if (textColor) block.style.setProperty('--download-text', textColor);
 
   if (title) {
     const heading = document.createElement('h2');

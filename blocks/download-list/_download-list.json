@@ -93,6 +93,22 @@
           "name": "downloadLabel",
           "label": "Download Button Label",
           "description": "Optional text next to the download icon. Leave empty to show only the icon."
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "bgColor",
+          "label": "Background Color",
+          "description": "CSS color for the block background (hex, rgb, or var). Example: #ffffff",
+          "value": "#ffffff"
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "textColor",
+          "label": "Text Color",
+          "description": "CSS color for the text (hex, rgb, or var). Example: #1f1f1f",
+          "value": "#1f1f1f"
         }
       ]
     }

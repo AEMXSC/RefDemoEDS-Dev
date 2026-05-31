@@ -1,6 +1,9 @@
 .download {
-  background: transparent;
-  color: var(--text-light, #fff);
+  /* Colors are author-controlled via the Background Color / Text Color fields
+     (set as inline custom properties by the JS). Fallbacks here give a readable
+     dark-on-light default when no value is provided. */
+  background: var(--download-bg, #fff);
+  color: var(--download-text, #1f1f1f);
   padding: 8px 0;
   border-radius: 0;
 }
@@ -36,16 +39,19 @@
   gap: 24px;
   padding: 24px 12px;
   background: transparent;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--download-text, #1f1f1f) 15%, transparent);
   transition: background 0.2s ease;
 }
 
 .download .download-row:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid color-mix(in srgb, var(--download-text, #1f1f1f) 15%, transparent);
 }
 
 .download .download-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.04);
+  background: color-mix(in srgb, var(--download-text, #1f1f1f) 5%, transparent);
 }
 
 .download .download-row__info {
