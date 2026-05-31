@@ -3,8 +3,8 @@ const VALID_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
 const KEY_MAP = {
   title: 'title',
   titletext: 'title',
-  titletype: 'titleType',
-  headinglevel: 'titleType',
+  titletype: 'headingLevel',
+  headinglevel: 'headingLevel',
   align: 'align',
   textalignment: 'align',
   color: 'color',
@@ -39,14 +39,19 @@ export default function decorate(block) {
   // Read a field's value. In the Universal Editor each value carries a
   // data-aue-prop, so reads are reliable regardless of the key-cell text or
   // field order; on publish (no aue attributes) fall back to the key-value map.
-  const read = (name) => {
-    const authored = block.querySelector(`[data-aue-prop="${name}"]`);
-    if (authored) return authored.textContent.trim();
+  // Extra prop aliases let us read content authored against an older field name.
+  const read = (name, ...aliases) => {
+    for (const prop of [name, ...aliases]) {
+      const authored = block.querySelector(`[data-aue-prop="${prop}"]`);
+      if (authored) return authored.textContent.trim();
+    }
     return getCellText(config[name]);
   };
 
   const titleText = read('title');
-  const typeText = read('titleType');
+  // Field renamed titleType -> headingLevel (titleType collided with the core
+  // Title component's reserved field name and never persisted). Read both.
+  const typeText = read('headingLevel', 'titleType');
   const alignText = read('align');
   const colorText = read('color');
   const padTopText = read('paddingTop');
