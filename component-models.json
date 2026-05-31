@@ -684,7 +684,7 @@
       {
             "component": "boolean",
             "label": "Enable Underline in Title",
-            "description": "Enable underline in title",
+            "description": "Enable underline for H1 elements in your text",
             "name": "enableunderline",
             "value": "true",
             "valueType": "boolean"
@@ -716,29 +716,7 @@
           }
         ]
       },
-      {
-        "component": "select",
-        "name": "ctastyle",
-        "label": "CTA Style",
-        "options": [
-          {
-            "name": "Link",
-            "value": "link"
-          },
-          {
-            "name": "Button",
-            "value": "button"
-          },
-          {
-            "name": "Button secondary",
-            "value": "button-secondary"
-          },
-          {
-            "name": "Dark Button",
-            "value": "button-dark"
-          }
-        ]
-      },
+      
       {
         "component": "select",
         "name": "backgroundstyle",
@@ -772,6 +750,29 @@
         "name": "ctalink",
         "label": "CTA Button Link",
         "description": "Target page or URL for the call-to-action button."
+      },
+      {
+        "component": "select",
+        "name": "ctastyle",
+        "label": "CTA Style",
+        "options": [
+          {
+            "name": "Link",
+            "value": "link"
+          },
+          {
+            "name": "Button",
+            "value": "button"
+          },
+          {
+            "name": "Button secondary",
+            "value": "button-secondary"
+          },
+          {
+            "name": "Dark Button",
+            "value": "button-dark"
+          }
+        ]
       }
     ]
   },

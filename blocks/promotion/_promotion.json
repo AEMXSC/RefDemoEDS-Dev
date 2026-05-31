@@ -27,7 +27,7 @@
           "valueType": "string",
           "required": true,
           "variationName": "contentFragmentVariation",
-          "description": "The default content fragment to display. At runtime, Adobe Target may replace this with a personalized offer."
+          "description": "The default content fragment to display. At runtime, Adobe Target replaces this with a personalized offer for your audience."
         },
         {
           "component": "text",
@@ -67,7 +67,7 @@
           "valueType": "string",
           "required": true,
           "value": "target-global-mbox",
-          "description": "The Adobe Target mbox name for personalization. Leave as 'target-global-mbox' for page-level activities."
+          "description": "The Adobe Target mbox name for personalization. Default is: 'target-global-mbox'."
         }
       ]
     }

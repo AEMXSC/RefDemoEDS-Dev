@@ -433,7 +433,7 @@ export default async function decorate(block) {
         <div class="promotion-content">
           <p class="promotion-subtitle">Adobe Target Personalization</p>
           <h3 class="promotion-title">Promotion Block</h3>
-          <p class="promotion-description">Select a default Content Fragment using the block properties panel. At runtime, Adobe Target may replace it with a personalized offer (mbox: <strong>${mboxName}</strong>).</p>
+          <p class="promotion-description">Select a default Content Fragment using the block properties panel. At runtime, Adobe Target will replace this with a personalized offer as per your audience and offer configuration. (Default mbox is: <strong>${mboxName}</strong>).</p>
         </div>
       </div>`;
     }

@@ -86,29 +86,6 @@
         },
         {
           "component": "select",
-          "name": "ctastyle",
-          "label": "CTA Style",
-          "options": [
-            {
-              "name": "default",
-              "value": ""
-            },
-            {
-              "name": "Button",
-              "value": "button"
-            },
-            {
-              "name": "Button secondary",
-              "value": "button-secondary"
-            },
-            {
-              "name": "Link",
-              "value": "link"
-            }
-          ]
-        },
-        {
-          "component": "select",
           "name": "backgroundstyle",
           "label": "Text Background Style",
           "options": [
@@ -140,6 +117,29 @@
           "name": "ctalink",
           "label": "CTA Button Link",
           "description": "Target page or URL for the call-to-action button."
+        },
+        {
+          "component": "select",
+          "name": "ctastyle",
+          "label": "CTA Style",
+          "options": [
+            {
+              "name": "default",
+              "value": ""
+            },
+            {
+              "name": "Button",
+              "value": "button"
+            },
+            {
+              "name": "Button secondary",
+              "value": "button-secondary"
+            },
+            {
+              "name": "Link",
+              "value": "link"
+            }
+          ]
         }
       ]
     }
