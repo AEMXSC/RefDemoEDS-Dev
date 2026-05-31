@@ -1,125 +1,107 @@
 .dynamic-media-video {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  justify-content: center;
+  align-items: center;
   width: 100%;
-  position: relative;
 }
 
-/* 16:9 responsive container */
+.dynamic-media-video video {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* DM Player iframe wrapper - 16:9 responsive container */
 .dynamic-media-video .dm-video-player-wrapper {
   position: relative;
   width: 100%;
   padding-bottom: 56.25%; /* 16:9 aspect ratio */
   height: 0;
   overflow: hidden;
-  background: #000;
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0 0 0 / 25%);
 }
 
-/* DM player container inside the wrapper */
-.dynamic-media-video .dm-video-player {
+.dynamic-media-video .dm-video-player-wrapper iframe {
   position: absolute;
-  inset: 0;
-}
-
-/* If the DM viewer renders an iframe or video, it will inherit these */
-.dynamic-media-video iframe,
-.dynamic-media-video video {
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border: 0;
-  display: block;
 }
 
-/* Loading state driven by data attributes */
-.dynamic-media-video[data-video-loaded='loading'] .dm-video-player-wrapper {
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  position: relative;
+.dynamic-media-video[data-video-loaded='false'] {
+  aspect-ratio: 16 / 9;
+  background-color: #f0f0f0;
 }
 
-.dynamic-media-video[data-video-loaded='loading'] .dm-video-player-wrapper::after {
-  content: 'Loading video…';
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4b5563;
-  font-size: 0.9rem;
-  font-weight: 500;
+.dynamic-media-video[data-video-loaded='error'] {
+  aspect-ratio: 16 / 9;
+  background-color: #f8d7da;
 }
 
-/* Error state driven by data attributes */
-.dynamic-media-video[data-video-loaded='error'] .dm-video-player-wrapper {
-  background: #fef2f2;
-  border: 1px solid #fee2e2;
-}
-
-.dynamic-media-video[data-video-loaded='error'] .dm-video-player-wrapper::after {
-  content: 'Failed to load video';
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #b91c1c;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* Chapters UI */
-.dynamic-media-video .dm-video-chapters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  justify-content: flex-start;
-}
-
-.dynamic-media-video .dm-video-chapter {
-  border: none;
-  border-radius: 999px;
-  padding: 0.35rem 0.85rem;
-  background: rgba(15 23 42 / 8%);
-  color: #111827;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-}
-
-.dynamic-media-video .dm-video-chapter:hover {
-  background: rgba(37 99 235 / 12%);
-  box-shadow: 0 2px 6px rgba(37 99 235 / 18%);
-  transform: translateY(-1px);
-}
-
-.dynamic-media-video .dm-video-chapter:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-.dynamic-media-video[data-video-loaded='error'] .dm-video-chapters {
-  display: none;
-}
-
-/* Compact mode on small screens */
-@media (max-width: 768px) {
-  .dynamic-media-video .dm-video-player-wrapper {
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0 0 0 / 18%);
-  }
-
-  .dynamic-media-video .dm-video-chapter {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-  }
-}
-
-/* Legacy wrapper support */
 .dynamic-media-video-wrapper {
   text-align: center;
   width: 100%;
+}
+
+/*
+ * Smart-crop rendition-based fixed heights
+ * ─────────────────────────────────────────
+ * The DM smart-crop player selects the best rendition for the container size.
+ * Heights below are derived from each rendition's aspect ratio at the
+ * breakpoint's minimum viewport width, keeping the container predictable
+ * and avoiding layout shift.
+ *
+ * Rendition        Ratio   Breakpoint   Height derivation
+ * Widescreen       16:9    ≥1200px      1200 × 9/16 = 675px
+ * Standard          4:3    900–1199px    900 × 3/4  = 675px
+ * Square            1:1    600–899px     600 × 1/1  = 600px
+ * VerticalFeed      4:5    480–599px     480 × 5/4  = 600px
+ * Vertical          9:16   <480px        capped at  600px (avoids overflow)
+ */
+
+/* Widescreen 16:9 — large screens (desktop) */
+@media (min-width: 1200px) {
+  .dynamic-media-video {
+    width: 100%;
+    height: 675px;
+    max-height: 80vh;
+  }
+}
+
+/* Standard 4:3 — medium screens (landscape tablets) */
+@media (min-width: 900px) and (max-width: 1199px) {
+  .dynamic-media-video {
+    width: 100%;
+    height: 675px;
+    max-height: 80vh;
+  }
+}
+
+/* Square 1:1 — small tablets / large phones (landscape) */
+@media (min-width: 600px) and (max-width: 899px) {
+  .dynamic-media-video {
+    width: 100%;
+    height: 600px;
+    max-height: 85vh;
+  }
+}
+
+/* VerticalFeed 4:5 — phones (portrait) */
+@media (min-width: 480px) and (max-width: 599px) {
+  .dynamic-media-video {
+    width: 100%;
+    height: 600px;
+    max-height: 85vh;
+  }
+}
+
+/* Vertical 9:16 — narrow phones */
+@media (max-width: 479px) {
+  .dynamic-media-video {
+    width: 100%;
+    height: 600px;
+    max-height: 85vh;
+  }
 }

@@ -1,62 +1,12 @@
-import { loadScript } from '../../scripts/aem.js';
-
-const DM_VIDEO_VIEWER_URL = 'https://delivery-p153659-e1620914.adobeaemcloud.com/adobe/assets/urn:aaid:aem:dmviewers-html5/as/DMVideoViewer.js';
 let dmViewerPromise;
-/**
- * Wait for the DM VideoViewer to be available on window.dmviewers
- * @param {number} timeout - Maximum time to wait in ms
- * @returns {Promise<boolean>} - Resolves to true when available, rejects on timeout
- */
-function waitForDMViewer(timeout = 10000) {
-  return new Promise((resolve, reject) => {
-    // Check if already available
-    if (window.dmviewers?.VideoViewer) {
-      resolve(true);
-      return;
-    }
-
-    const startTime = Date.now();
-    const checkInterval = setInterval(() => {
-      if (window.dmviewers?.VideoViewer) {
-        clearInterval(checkInterval);
-        resolve(true);
-      } else if (Date.now() - startTime > timeout) {
-        clearInterval(checkInterval);
-        reject(new Error('DM VideoViewer failed to load within timeout'));
-      }
-    }, 100);
-  });
-}
-
-/**
- * Load the DM Video Viewer script and wait for it to be ready
- * @returns {Promise<void>}
- */
-async function loadDMVideoViewer() {
-  if (!dmViewerPromise) {
-    dmViewerPromise = (async () => {
-      // Load the script (will skip if already in DOM)
-      await loadScript(DM_VIDEO_VIEWER_URL);
-      // Wait for the viewer to be available on window
-      await waitForDMViewer();
-    })();
-  }
-  return dmViewerPromise;
-}
 
 /**
  * Decorate the dm-video block.
  * @param {Element} block The block root element.
  */
 export default async function decorate(block) {
-  try {
-    await loadDMVideoViewer();
-  } catch (error) {
-    console.error('Failed to load DM VideoViewer:', error);
-    return;
-  }
-
-  if (!window.dmviewers?.VideoViewer) {
+ 
+  if (!window.dmviewers || !window.dmviewers.VideoViewer) {
     console.error('DM VideoViewer not available on window.dmviewers');
     return;
   }
@@ -102,13 +52,7 @@ export default async function decorate(block) {
     if (dashUrl) params.sources.DASH = dashUrl;
     if (hlsUrl) params.sources.HLS = hlsUrl;
 
-    let autoplay = '';
-	  let loop = '';
-	  let muted = '';
-	  let showControls = '';
-    
     const children = Array.from(block.children);
-    // Helper function to safely extract text content from a child div
     const getTextFromChild = (index) => {
       const childDiv = children[index];
       if (!childDiv) return '';
@@ -116,9 +60,14 @@ export default async function decorate(block) {
       return pElement?.textContent?.trim() || '';
     };
 
-    autoplay = getTextFromChild(1)?.toLowerCase() === 'true' ? true : false ;
-    loop = getTextFromChild(2)?.toLowerCase() === 'true' ? true : false;
-    muted = getTextFromChild(3)?.toLowerCase() === 'true' ? true : false;
+    const enableSmartCrop = getTextFromChild(1)?.toLowerCase() === 'true';
+    if (enableSmartCrop) {
+      params.mode = 'smartcrop';
+    }
+
+    const autoplay = getTextFromChild(2)?.toLowerCase() === 'true';
+    const loop = getTextFromChild(3)?.toLowerCase() === 'true';
+    const muted = getTextFromChild(4)?.toLowerCase() === 'true';
 
     Array.from(block.children).forEach((child) => {
 				child.style.display = 'none';

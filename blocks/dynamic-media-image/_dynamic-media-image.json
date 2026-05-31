@@ -130,6 +130,14 @@
           "name": "advance_parameters",
           "label": "Advance Parameters",
           "valueType": "string"
+        },
+        {
+          "component": "boolean",
+          "name": "showInfoIcon",
+          "label": "Show Info Icon",
+          "description": "Show an icon on the image(top right) that opens selected image in the DM Playground tool(Snapshot) for previewing image transformations",
+          "value": true,
+          "valueType": "boolean"
         }
       ]
     }
