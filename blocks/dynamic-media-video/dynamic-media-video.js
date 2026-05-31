@@ -65,9 +65,9 @@ export default async function decorate(block) {
       params.mode = 'smartcrop';
     }
 
-    const autoplay = getTextFromChild(3)?.toLowerCase() === 'true';
-    const loop = getTextFromChild(4)?.toLowerCase() === 'true';
-    const muted = getTextFromChild(5)?.toLowerCase() === 'true';
+    const autoplay = getTextFromChild(2)?.toLowerCase() === 'true';
+    const loop = getTextFromChild(3)?.toLowerCase() === 'true';
+    const muted = getTextFromChild(4)?.toLowerCase() === 'true';
 
     Array.from(block.children).forEach((child) => {
 				child.style.display = 'none';

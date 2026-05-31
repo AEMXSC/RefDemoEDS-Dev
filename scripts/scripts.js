@@ -529,6 +529,49 @@ export function getMetadataUrl(url) {
 		  
 	
 		   // Build advanced modifier parameters for Dynamic Media URL
+<<<<<<< HEAD
+		  const buildAdvanceModifierParams = () => {
+          const params = [];
+          
+          // Add rotation parameter
+          if (rotate) {
+            params.push(`rotate=${encodeURIComponent(rotate)}`);
+          }
+          
+          // Add flip parameter
+          if (flip) {
+            params.push(`flip=${encodeURIComponent(flip.toLowerCase())}`);
+          }
+          
+          // Add crop parameter
+          if (cropValue) {
+            params.push(`crop=${encodeURIComponent(cropValue.toLowerCase())}`);
+          }
+          
+          // Handle preset parameter with special logic for 'border' preset
+          if (preset) {
+            const presetLower = preset.toLowerCase();
+            
+            if (presetLower === 'border') {
+            // Border preset can include extend and background-color
+            if (extend && backgroundcolor) {
+              const bgColor = backgroundcolor.replace('#', '');
+              params.push(`extend=${encodeURIComponent(extend)}`);
+              params.push(`background-color=rgb,${encodeURIComponent(bgColor)}`);
+            } else if (extend) {
+              params.push(`extend=${encodeURIComponent(extend)}`);
+            }
+            }
+            else if (presetLower === 'grayscale') {
+              params.push(`saturation=-100`);
+            } else {
+            // Regular preset
+            params.push(`preset=${encodeURIComponent(preset)}`);
+            }
+          }
+          // Join all parameters with '&' and prepend '&' if there are any
+          return params.length > 0 ? `&${params.join('&')}` : '';
+=======
 		   const buildAdvanceModifierParams = () => {
 			const params = [];
 			
@@ -580,6 +623,7 @@ export function getMetadataUrl(url) {
 			
 			// Join all parameters with '&' and prepend '&' if there are any
 			return params.length > 0 ? `&${params.join('&')}` : '';
+>>>>>>> 68bc5e8eac0a1b4fbfd755940ad9b34c897182df
 		  };
 		  
 		  const advanceModifierParams = buildAdvanceModifierParams();
