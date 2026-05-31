@@ -32,31 +32,42 @@ function readConfig(block) {
 // Asset Folder field, but this read keeps old pages rendering instead of
 // silently dropping their lone picked asset.
 function readIndividualAssets(block) {
-  const candidateKeys = ['individualassets', 'individual files'];
-  const rows = block.querySelectorAll(':scope > div');
-  for (const row of rows) {
-    const cells = row.querySelectorAll(':scope > div');
-    if (cells.length < 2) continue;
-    const key = (cells[0].textContent || '').trim().toLowerCase();
-    if (!candidateKeys.includes(key)) continue;
-    const valueCell = cells[1];
-    const paths = [];
-    const seen = new Set();
-    const push = (raw) => {
-      const p = (raw || '').trim();
-      if (!p || seen.has(p)) return;
-      seen.add(p);
-      paths.push(p);
-    };
-    valueCell.querySelectorAll('a[href]').forEach((a) => {
-      push(a.getAttribute('title') || a.getAttribute('href') || '');
-    });
-    valueCell.querySelectorAll('picture img, img').forEach((img) => {
-      push(img.getAttribute('src') || '');
-    });
-    return paths;
+  // Locate the value cell holding the picked assets. Prefer the editor's
+  // data-aue-prop marker (reliable in the Universal Editor); otherwise match the
+  // key-value row whose key mentions "individual" (individualAssets /
+  // "Individual Files" / "Individual Assets").
+  let valueCell = block.querySelector('[data-aue-prop="individualAssets"]');
+  if (!valueCell) {
+    const rows = block.querySelectorAll(':scope > div');
+    for (const row of rows) {
+      const cells = row.querySelectorAll(':scope > div');
+      if (cells.length < 2) continue;
+      const key = (cells[0].textContent || '').toLowerCase().replace(/[^a-z]/g, '');
+      if (key.includes('individual')) { [, valueCell] = cells; break; }
+    }
   }
-  return [];
+  if (!valueCell) return [];
+
+  const paths = [];
+  const seen = new Set();
+  const push = (raw) => {
+    const p = (raw || '').trim();
+    if (!p || seen.has(p)) return;
+    seen.add(p);
+    paths.push(p);
+  };
+  // Asset references can render as links (href/title hold the DAM path) or as
+  // images/pictures (src may be an optimized delivery URL).
+  valueCell.querySelectorAll('a[href]').forEach((a) => {
+    push(a.getAttribute('title') || a.getAttribute('href') || '');
+  });
+  valueCell.querySelectorAll('picture source[srcset]').forEach((s) => {
+    push((s.getAttribute('srcset') || '').split(/\s|,/)[0]);
+  });
+  valueCell.querySelectorAll('img[src]').forEach((img) => {
+    push(img.getAttribute('src') || '');
+  });
+  return paths;
 }
 
 function formatBytes(bytes) {
@@ -281,21 +292,34 @@ async function fetchAssetsFromIndividualPaths(rawPaths) {
     if (!value) return;
     value = value.replace(/^urn:aemconnection:/i, '');
     try { value = decodeURIComponent(value); } catch (_) { /* keep as-is */ }
-    let damPath;
+    value = value.replace(/\.json$/, '').replace(/\/$/, '');
+    if (!value) return;
+
     const isAbsolute = /^https?:\/\//i.test(value);
+    let pathname = value;
     if (isAbsolute) {
-      try { damPath = new URL(value).pathname; } catch (_) { damPath = ''; }
-    } else {
-      damPath = value;
+      try { pathname = new URL(value).pathname; } catch (_) { pathname = value; }
     }
-    damPath = damPath.replace(/\.json$/, '').replace(/\/$/, '');
-    if (!damPath.startsWith('/content/dam/')) return;
-    if (seen.has(damPath)) return;
-    seen.add(damPath);
-    const name = damPath.split('/').pop();
-    const path = (isAuthor || isAbsolute) ? (isAbsolute ? value : damPath) : `${assetBase}${damPath}`;
+
+    // Friendly name from the last path segment (strip query/hash).
+    const name = (pathname.split('/').pop() || value).split('?')[0].split('#')[0] || 'file';
+
+    // Resolve a fetchable download URL and (when available) the /content/dam
+    // path used for the Sling JSON metadata enrichment:
+    //  - /content/dam/... : enrichable; prepend the publish base on aem.live.
+    //  - anything else (optimized delivery URL, absolute) : used as-is.
+    let damPath = '';
+    let path;
+    if (pathname.startsWith('/content/dam/')) {
+      damPath = pathname;
+      path = (isAuthor || isAbsolute) ? (isAbsolute ? value : pathname) : `${assetBase}${pathname}`;
+    } else {
+      path = isAbsolute ? value : `${assetBase || ''}${value}`;
+    }
+    if (seen.has(path)) return;
+    seen.add(path);
     records.push({
-      name, mime: '', size: 0, modified: '', path,
+      name, mime: '', size: 0, modified: '', path, damPath,
     });
   });
   if (!records.length) return [];

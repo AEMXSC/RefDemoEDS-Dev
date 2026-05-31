@@ -4,8 +4,8 @@
      dark-on-light default when no value is provided. */
   background: var(--download-bg, #fff);
   color: var(--download-text, #1f1f1f);
-  padding: 8px 0;
-  border-radius: 0;
+  padding: clamp(20px, 4vw, 40px);
+  border-radius: 16px;
 }
 
 .download .download__title {
@@ -37,7 +37,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 24px 12px;
+  padding: 24px 4px;
   background: transparent;
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   border-top: 1px solid color-mix(in srgb, var(--download-text, #1f1f1f) 15%, transparent);
