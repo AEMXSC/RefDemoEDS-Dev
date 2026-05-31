@@ -66,37 +66,47 @@ function hasMeaningfulContent(div) {
  * Supports both image and video backgrounds — asset type is auto-detected.
  * Video plays muted, looped, autoplayed with no controls (background video).
  *
- * DOM child-div order (matches model field order):
- *   1  image + imageAlt   (reference + text share same row)
+ * Config values are read by their data-aue-prop in the Universal Editor, so the
+ * order of the config fields in the dialog does NOT matter there. On publish
+ * (no data-aue attributes) we fall back to the positional index, which must
+ * match the model field order:
+ *   1  image + imageAlt   (asset + alt)
  *   2  text               (richtext — headings, paragraphs)
  *   3  enableunderline
  *   4  herolayout
- *   5  ctastyle
- *   6  backgroundstyle
- *   7  ctalabel           (CTA button label)
- *   8  ctalink            (CTA button link)
+ *   5  backgroundstyle
+ *   6  ctalabel           (CTA button label)
+ *   7  ctalink            (CTA button link)
+ *   8  ctastyle           (CTA button style)
  *
  * @param {Element} block
  */
 export default function decorate(block) {
-  // --- Capture all direct child divs BEFORE any DOM mutations ---
-  // This gives us stable references regardless of prepend/remove operations.
+  // --- Capture direct child divs BEFORE any DOM mutations ---
   const childDivs = [...block.querySelectorAll(':scope > div')];
-  const assetDiv = childDivs[0]; // div 1: image/video asset + alt
-  const textDiv = childDivs[1]; // div 2: richtext (headings, paragraphs)
-  const underlineDiv = childDivs[2]; // div 3: enableunderline
-  const layoutDiv = childDivs[3]; // div 4: herolayout
-  const ctaDiv = childDivs[4]; // div 5: ctastyle
-  const bgDiv = childDivs[5]; // div 6: backgroundstyle
-  const ctaLabelDiv = childDivs[6]; // div 7: ctalabel
-  const ctaLinkDiv = childDivs[7]; // div 8: ctalink
+  const assetDiv = childDivs[0]; // asset (image/video) + alt
+  const textDiv = childDivs[1]; // richtext (headings, paragraphs)
+
+  // Read a config value by its model property name. In the Universal Editor the
+  // value carries a data-aue-prop, so reads are independent of the dialog field
+  // order. On publish there are no aue attributes, so fall back to the
+  // positional index (which must match the model field order documented above).
+  const readProp = (prop, index) => {
+    const authored = block.querySelector(`:scope > div [data-aue-prop="${prop}"]`);
+    if (authored) return authored.textContent.trim();
+    return childDivs[index]?.querySelector('div')?.textContent?.trim() || '';
+  };
 
   // --- Read configuration values ---
-  const enableUnderline = underlineDiv?.querySelector('div')?.textContent?.trim() || 'true';
-  const layoutStyle = layoutDiv?.querySelector('div')?.textContent?.trim() || 'overlay';
-  const ctaStyle = ctaDiv?.querySelector('div')?.textContent?.trim() || 'button';
-  const backgroundStyle = bgDiv?.querySelector('div')?.textContent?.trim() || 'default';
-  const ctaLabel = ctaLabelDiv?.querySelector('div')?.textContent?.trim() || '';
+  const enableUnderline = readProp('enableunderline', 2) || 'true';
+  const layoutStyle = readProp('herolayout', 3) || 'overlay';
+  const backgroundStyle = readProp('backgroundstyle', 4) || 'default';
+  const ctaLabel = readProp('ctalabel', 5);
+  const ctaStyle = readProp('ctastyle', 7) || 'button';
+
+  // The CTA link (aem-content) renders as an <a> with no stable data-aue-prop,
+  // so identify it as the only config div (after asset + text) containing a link.
+  const ctaLinkDiv = childDivs.slice(2).find((d) => d.querySelector('a')) || childDivs[6];
   const ctaLinkAnchor = ctaLinkDiv?.querySelector('a');
   const ctaLink = ctaLinkAnchor?.getAttribute('href')
     || ctaLinkDiv?.querySelector('div')?.textContent?.trim()
@@ -178,8 +188,8 @@ export default function decorate(block) {
     if (textDiv) textDiv.style.display = 'none';
   }
 
-  // --- Hide configuration-only divs ---
-  [underlineDiv, layoutDiv, ctaDiv, bgDiv, ctaLabelDiv, ctaLinkDiv].forEach((div) => {
-    if (div) div.style.display = 'none';
+  // --- Hide all configuration-only divs (everything after asset + text) ---
+  childDivs.forEach((div, index) => {
+    if (index > 1 && div) div.style.display = 'none';
   });
 }
