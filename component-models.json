@@ -696,6 +696,7 @@
         "valueType": "string",
         "name": "titleType",
         "label": "Heading Level",
+        "value": "h2",
         "options": [
           { "name": "H1", "value": "h1" },
           { "name": "H2", "value": "h2" },

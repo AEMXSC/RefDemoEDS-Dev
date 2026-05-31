@@ -26,6 +26,7 @@ export default function decorate(block) {
   // Idempotency guard: avoid corrupting the block if decorate runs again on already-decorated DOM.
   if (block.dataset.titleBlockDecorated === 'true') return;
 
+  // Map the published key-value rows (key cell -> value cell).
   const config = {};
   [...block.children].forEach((row) => {
     const cells = [...row.children];
@@ -35,13 +36,22 @@ export default function decorate(block) {
     config[field] = cells[1];
   });
 
-  const titleText = getCellText(config.title);
-  const typeText = getCellText(config.titleType);
-  const alignText = getCellText(config.align);
-  const colorText = getCellText(config.color);
-  const padTopText = getCellText(config.paddingTop);
-  const padBottomText = getCellText(config.paddingBottom);
-  const bgColor = getCellText(config.bgColor);
+  // Read a field's value. In the Universal Editor each value carries a
+  // data-aue-prop, so reads are reliable regardless of the key-cell text or
+  // field order; on publish (no aue attributes) fall back to the key-value map.
+  const read = (name) => {
+    const authored = block.querySelector(`[data-aue-prop="${name}"]`);
+    if (authored) return authored.textContent.trim();
+    return getCellText(config[name]);
+  };
+
+  const titleText = read('title');
+  const typeText = read('titleType');
+  const alignText = read('align');
+  const colorText = read('color');
+  const padTopText = read('paddingTop');
+  const padBottomText = read('paddingBottom');
+  const bgColor = read('bgColor');
 
   const tagLower = typeText.toLowerCase();
   const tag = VALID_TAGS.has(tagLower) ? tagLower : 'h2';
