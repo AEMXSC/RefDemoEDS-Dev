@@ -1105,8 +1105,9 @@ table {
   transform: translateX(0);
 }
 
-/* Accessibility: darken default accent and hover for better contrast */
+/* Accessibility: darken default accent and hover for better contrast
 :root {
   --main-accent-color: #C2410C; /* darker orange for contrast */
   --link-hover-color: #9A3412;  /* darker hover */
 }
+ */
