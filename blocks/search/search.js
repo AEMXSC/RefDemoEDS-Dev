@@ -340,7 +340,7 @@ async function resolveAssetListingBase() {
   return hostname.replace('author', 'publish').replace(/\/$/, '');
 }
 
-const READPDF_SERVLET = '/bin/readpdf';
+const QUERYBUILDER_SERVLET = '/bin/querybuilder.json';
 
 function normalizeSearchResultPath(path) {
   let p = String(path || '');
@@ -365,48 +365,71 @@ function buildExcludedPathMatcher(excludeRaw) {
   };
 }
 
-// AEM servlet: full-text search inside PDF assets (returns path + matching line).
-async function fetchPdfSearchResults(keyword) {
+// AEM QueryBuilder: full-text search inside PDF assets within a DAM folder.
+// Builds a request like:
+//   <host>/bin/querybuilder.json?path=<dam-folder>&type=dam:Asset
+//     &property=jcr:content/metadata/dc:format&property.value=application/pdf
+//     &fulltext=<keyword>&p.limit=50
+// The host is resolved dynamically per environment; the folder path comes from
+// the block's configured Asset Search Path.
+async function fetchPdfSearchResults(keyword, folderPath) {
   const q = String(keyword || '').trim();
   if (q.length < 3) return [];
+
+  const damRoot = normalizeAssetFolderPath(folderPath);
+  if (!damRoot || !damRoot.startsWith('/content/dam/')) return [];
 
   const isAuthor = isAuthorEnvironment();
   const listingBase = isAuthor ? '' : await resolveAssetListingBase();
   if (!isAuthor && !listingBase) return [];
 
   const origin = isAuthor ? '' : listingBase;
-  const url = `${origin}${READPDF_SERVLET}?keyword=${encodeURIComponent(q)}`;
+  const params = new URLSearchParams({
+    path: damRoot,
+    type: 'dam:Asset',
+    property: 'jcr:content/metadata/dc:format',
+    'property.value': 'application/pdf',
+    fulltext: q,
+    'p.limit': '50',
+  });
+  const url = `${origin}${QUERYBUILDER_SERVLET}?${params.toString()}`;
 
   try {
     const res = await fetch(url, isAuthor ? { credentials: 'include' } : {});
     if (!res.ok) {
       // eslint-disable-next-line no-console
-      console.warn('[search] readpdf HTTP', res.status, url);
+      console.warn('[search] querybuilder HTTP', res.status, url);
       return [];
     }
     const json = await res.json();
-    if (!Array.isArray(json)) return [];
+    const hits = Array.isArray(json?.hits) ? json.hits : [];
+    if (!hits.length) return [];
 
-    return json
+    return hits
       .filter((hit) => hit && typeof hit.path === 'string' && hit.path.includes('/content/dam/'))
       .map((hit) => {
         const damPath = hit.path.replace(/\/$/, '');
-        const fileName = damPath.split('/').pop() || '';
-        const title = fileName.replace(/\.[^.]+$/, '') || fileName;
-        const line = safeText(hit.line).trim();
+        const fileName = hit.name || damPath.split('/').pop() || '';
+        const title = (hit.title || fileName).replace(/\.[^.]+$/, '') || fileName;
+        const snippet = safeText(hit.excerpt).trim();
         const fullPath = (!isAuthor && listingBase) ? `${listingBase}${damPath}` : damPath;
+        let lastModified = 0;
+        if (hit.lastModified) {
+          const ms = new Date(hit.lastModified).getTime();
+          if (Number.isFinite(ms)) lastModified = Math.floor(ms / 1000);
+        }
         return {
           path: fullPath,
           title,
           navTitle: title,
-          description: line,
-          body: line,
+          description: snippet,
+          body: snippet,
           tags: '',
           image: '',
-          publishDate: 0,
+          publishDate: lastModified,
           contentType: 'application/pdf',
           author: '',
-          lastModified: 0,
+          lastModified,
           size: 0,
           robots: '',
           pdfTextMatch: true,
@@ -414,7 +437,7 @@ async function fetchPdfSearchResults(keyword) {
       });
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.warn('[search] readpdf fetch failed', e);
+    console.warn('[search] querybuilder fetch failed', e);
     return [];
   }
 }
@@ -1805,7 +1828,7 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
 
   let pdfRecords = [];
   try {
-    pdfRecords = await fetchPdfSearchResults(value);
+    pdfRecords = await fetchPdfSearchResults(value, block.dataset.assetSearchPath || '');
     const startsWithExcluded = buildExcludedPathMatcher(block.dataset.excludeAssetPaths || '');
     if (startsWithExcluded && pdfRecords.length) {
       pdfRecords = pdfRecords.filter((r) => !startsWithExcluded(r.path));
