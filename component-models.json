@@ -23,7 +23,7 @@
         "component": "aem-content-fragment",
         "name": "theme_cf_reference",
         "label": "Brand Theme",
-        "description": "Select the CF with authored values for the brand theme. This will be applied on the pages",
+        "description": "Select the Brand Theme Content Fragment. Only applies when Theme in the dropdown below is set to default",
         "valueType": "string",
         "validation": {
             "rootPath": "/content/dam"
@@ -33,7 +33,7 @@
           "component": "select",
           "name": "theme",
           "label": "Theme",
-          "description": "Note: This takes priority over CF based theme.",
+          "description": "This takes priority over CF based theme except when default is selected.",
 
           "options": [
             {
