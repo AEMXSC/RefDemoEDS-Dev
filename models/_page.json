@@ -39,11 +39,11 @@
         "label": "Hostname",
         "description": "Provide the hostname of author instance (without the ending slash) e.g. https://author-pXXXXX-eXXXXXXX.adobeaemcloud.com"
       },
-      {          
-        "component": "aem-content",
+      {
+        "component": "aem-content-fragment",
         "name": "theme_cf_reference",
         "label": "Brand Theme",
-        "description": "Select the CF with authored values for the brand theme. This will be applied on the pages",
+        "description": "Select the Brand Theme Content Fragment. Only applies when Theme in the dropdown below is set to default",
         "valueType": "string",
         "validation": {
             "rootPath": "/content/dam"
@@ -53,22 +53,32 @@
           "component": "select",
           "name": "theme",
           "label": "Theme",
+          "description": "This takes priority over CF based theme except when default is selected.",
+
           "options": [
             {
               "name": "default",
               "value": ""
             },
             {
-              "name": "Mango Haze",
-              "value": "mango-haze"
+              "name": "Gray Theme",
+              "value": "gray-theme"
             },
             {
-              "name": "Lavender Chill",
-              "value": "lavender-chill"
+              "name": "Red Theme",
+              "value": "red-theme"
+            },
+            {
+              "name": "Blue Theme",
+              "value": "blue-theme"
             },
              {
-              "name": "Meadow Light",
-              "value": "meadow-light"
+              "name": "Green Theme",
+              "value": "green-theme"
+            },
+            {
+              "name": "WeHealthcare Theme",
+              "value": "wehealthcare-theme"
             }
           ]
       },
