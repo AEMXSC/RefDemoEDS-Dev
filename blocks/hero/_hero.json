@@ -24,7 +24,7 @@
           "component": "reference",
           "valueType": "string",
           "name": "image",
-          "label": "Image",
+          "label": "Asset",
           "multi": false
         },
         {
@@ -55,34 +55,68 @@
           "label": "Hero Layout Style",
           "options": [
             {
-              "name": "Default",
+              "name": "Default (Asset-Background)",
               "value": "overlay"
             },
             {
-              "name": "Image Left",
+              "name": "Asset Left",
               "value": "image-left"
             },
             {
-              "name": "Image Right",
+              "name": "Asset Right",
               "value": "image-right"
             },
             {
-              "name": "Image Top",
+              "name": "Asset Top",
               "value": "image-top"
             },
             {
-              "name": "Image Bottom",
+              "name": "Asset Bottom",
               "value": "image-bottom"
             },
             {
-              "name": "Image-Background Text-Left",
+              "name": "Asset-Background Text-Left",
               "value": "image-background-text-left"
             },
             {
-              "name": "Image-Background Text-Right",
+              "name": "Asset-Background Text-Right",
               "value": "image-background-text-right"
             }
           ]
+        },
+        {
+          "component": "select",
+          "name": "backgroundstyle",
+          "label": "Text Background Style",
+          "options": [
+            {
+              "name": "Default",
+              "value": "default"
+            },
+            {
+              "name": "Theme Dark",
+              "value": "theme-dark"
+            },
+            {
+              "name": "Theme Light",
+              "value": "theme-light"
+            }
+          ]
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "ctalabel",
+          "label": "CTA Button Label",
+          "description": "Text shown on the call-to-action button. Leave empty to hide the button.",
+          "value": ""
+        },
+        {
+          "component": "aem-content",
+          "valueType": "string",
+          "name": "ctalink",
+          "label": "CTA Button Link",
+          "description": "Target page or URL for the call-to-action button."
         },
         {
           "component": "select",
@@ -108,23 +142,12 @@
           ]
         },
         {
-          "component": "select",
-          "name": "backgroundstyle",
-          "label": "Background Style",
-          "options": [
-            {
-              "name": "Default",
-              "value": "default"
-            },
-            {
-              "name": "Theme Dark",
-              "value": "theme-dark"
-            },
-            {
-              "name": "Theme Light",
-              "value": "theme-light"
-            }
-          ]
+          "component": "text",
+          "valueType": "string",
+          "name": "badge",
+          "label": "Badge / Highlight Text",
+          "description": "Optional pill-style label shown above the title.",
+          "value": ""
         }
       ]
     }

@@ -1,9 +1,11 @@
 import {
   createOptimizedPicture,
-  decorateIcons
+  decorateIcons,
+  getMetadata,
 } from '../../scripts/aem.js';
 import { fetchPlaceholders } from '../../scripts/placeholders.js';
-import { getLanguage } from '../../scripts/utils.js';
+import { getLanguage, getHostname } from '../../scripts/utils.js';
+import { isAuthorEnvironment } from '../../scripts/scripts.js';
 
 const searchParams = new URLSearchParams(window.location.search);
 
@@ -132,9 +134,584 @@ function applySearchPathFilter(data, searchPath) {
   return list.filter((r) => typeof r?.path === 'string' && r.path.toLowerCase().startsWith(prefix));
 }
 
+/* ── DAM Asset Search (merges assets into the page-search dataset) ─────
+ * Asset records use the same shape as page-search records, with `path`
+ * pointing at the asset URL and `contentType` set to its MIME type.
+ * `image` is the asset itself for images, or empty for documents so the
+ * renderer can fall back to an icon. */
+
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg']);
+const DOC_EXTS = new Set(['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx']);
+
+function extOf(name) {
+  if (!name) return '';
+  const idx = name.lastIndexOf('.');
+  return idx >= 0 ? name.slice(idx + 1).toLowerCase() : '';
+}
+
+function inferMimeFromExt(ext) {
+  if (!ext) return '';
+  if (IMAGE_EXTS.has(ext)) return `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+  if (ext === 'pdf') return 'application/pdf';
+  if (ext === 'doc' || ext === 'docx') return 'application/msword';
+  if (ext === 'ppt' || ext === 'pptx') return 'application/vnd.ms-powerpoint';
+  if (ext === 'xls' || ext === 'xlsx') return 'application/vnd.ms-excel';
+  return '';
+}
+
+function isImageMime(mime) {
+  return typeof mime === 'string' && mime.toLowerCase().startsWith('image/');
+}
+
+function isDocMime(mime) {
+  if (typeof mime !== 'string') return false;
+  const m = mime.toLowerCase();
+  return /pdf|msword|wordprocessing|powerpoint|presentation|excel|spreadsheet/.test(m);
+}
+
+function formatBytes(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  const num = Number(bytes);
+  if (Number.isNaN(num) || num <= 0) return '';
+  if (num < 1024) return `${num} B`;
+  if (num < 1024 * 1024) return `${(num / 1024).toFixed(0)} KB`;
+  if (num < 1024 * 1024 * 1024) {
+    return `${(num / (1024 * 1024)).toFixed(num < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  }
+  return `${(num / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function formatAssetDateTime(modifiedSec) {
+  if (!Number.isFinite(modifiedSec) || modifiedSec <= 0) return '';
+  const ms = modifiedSec < 1e12 ? modifiedSec * 1000 : modifiedSec;
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  try {
+    const locale = document.documentElement.lang || 'en';
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(d);
+  } catch (_) {
+    return d.toLocaleString();
+  }
+}
+
+function isDamAssetResult(result) {
+  return /\/content\/dam\//.test(result?.path || '');
+}
+
+function getAssetSizeLabel(result) {
+  return formatBytes(result.size) || '';
+}
+
+function updateAssetSizeInActions(li, result) {
+  const actions = li.querySelector('.search-result-asset-actions');
+  if (!actions) return;
+  let sizeEl = actions.querySelector('.search-result-asset-size');
+  const sizeLabel = getAssetSizeLabel(result);
+  if (sizeLabel) {
+    if (!sizeEl) {
+      sizeEl = document.createElement('span');
+      sizeEl.className = 'search-result-asset-size';
+      actions.append(sizeEl);
+    }
+    sizeEl.textContent = sizeLabel;
+  } else if (sizeEl) {
+    sizeEl.remove();
+  }
+}
+
+function updateAssetResultMeta(li, result) {
+  if (!isDamAssetResult(result)) {
+    li.querySelector('.search-result-asset-date')?.remove();
+    return;
+  }
+  updateAssetSizeInActions(li, result);
+  const body = li.querySelector('.search-result-body');
+  const title = li.querySelector('.search-result-title');
+  const snippet = li.querySelector('.search-result-snippet');
+  let dateEl = li.querySelector('.search-result-asset-date');
+  const dateText = formatAssetDateTime(result.lastModified);
+  if (dateText) {
+    if (!dateEl) {
+      dateEl = document.createElement('p');
+      dateEl.className = 'search-result-asset-date';
+    }
+    dateEl.textContent = dateText;
+    if (body) {
+      if (dateEl.parentElement !== body) body.append(dateEl);
+    } else {
+      const insertAfter = snippet || title;
+      if (insertAfter && dateEl.previousElementSibling !== insertAfter) {
+        insertAfter.insertAdjacentElement('afterend', dateEl);
+      }
+    }
+  } else if (dateEl) {
+    dateEl.remove();
+  }
+}
+
+function parseDamAssetNode(val) {
+  const jcrContent = val['jcr:content'] || {};
+  const meta = jcrContent.metadata || {};
+  const renditions = jcrContent.renditions || {};
+  const original = renditions.original || {};
+  const originalContent = original['jcr:content'] || {};
+  const mime = jcrContent['jcr:mimeType']
+    || meta['dc:format']
+    || originalContent['jcr:mimeType']
+    || '';
+  const size = Number(
+    meta['dam:size']
+      || originalContent['jcr:data']
+      || jcrContent['jcr:data']
+      || 0,
+  );
+  const modifiedRaw = meta['jcr:lastModified']
+    || jcrContent['jcr:lastModified']
+    || val['jcr:lastModified']
+    || val['jcr:created']
+    || '';
+  let modifiedSec = 0;
+  if (modifiedRaw) {
+    const ms = new Date(modifiedRaw).getTime();
+    if (Number.isFinite(ms)) modifiedSec = Math.floor(ms / 1000);
+  }
+  return { mime, size, modifiedSec };
+}
+
+// Build a single search-data record from one asset.
+function assetToSearchRecord(name, mime, modifiedSec, parentPath, size = 0) {
+  const ext = extOf(name);
+  const inferredMime = mime || inferMimeFromExt(ext);
+  const title = name.replace(/\.[^.]+$/, '');
+  const path = `${parentPath.replace(/\/$/, '')}/${name}`;
+  const sizeNum = Number(size);
+  return {
+    path,
+    title,
+    navTitle: title,
+    description: '',
+    body: '',
+    tags: '',
+    image: isImageMime(inferredMime) ? path : '',
+    publishDate: Number.isFinite(modifiedSec) ? modifiedSec : 0,
+    contentType: inferredMime,
+    author: '',
+    lastModified: Number.isFinite(modifiedSec) ? Math.floor(modifiedSec) : 0,
+    size: Number.isFinite(sizeNum) && sizeNum > 0 ? sizeNum : 0,
+    robots: '',
+  };
+}
+
+function toAssetsApiPath(folderPath) {
+  const clean = folderPath.replace(/\/$/, '').replace(/\.json$/, '');
+  if (clean.startsWith('/api/assets/')) return `${clean}.json`;
+  if (clean.startsWith('/content/dam/')) return `/api/assets/${clean.slice('/content/dam/'.length)}.json`;
+  return `${clean}.json`;
+}
+
+// Normalize DAM folder path from block config (aem-content picker variants).
+function normalizeAssetFolderPath(rawPath) {
+  if (!rawPath) return '';
+  let p = String(rawPath).trim();
+  p = p.replace(/^urn:aemconnection:/i, '');
+  try { p = decodeURIComponent(p); } catch (_) { /* keep as-is if malformed */ }
+  p = p.replace(/\.json$/, '');
+  p = p.replace(/\/$/, '');
+  return p;
+}
+
+// Resolve the AEM origin to fetch asset listings from, per environment.
+//   • author host    → '' (relative, same-origin works on author)
+//   • localhost / aem.live / preview → publish AEM origin (anonymous read;
+//     author requires login and returns 401 from localhost without a session)
+async function resolveAssetListingBase() {
+  if (isAuthorEnvironment()) return '';
+
+  let hostname = '';
+  try { hostname = (await getHostname()) || ''; } catch (_) { /* ignore */ }
+  if (!hostname) hostname = getMetadata('hostname') || '';
+  if (!hostname) return '';
+  return hostname.replace('author', 'publish').replace(/\/$/, '');
+}
+
+const QUERYBUILDER_SERVLET = '/bin/querybuilder.json';
+
+function normalizeSearchResultPath(path) {
+  let p = String(path || '');
+  if (/^https?:\/\//i.test(p)) {
+    try { p = new URL(p).pathname; } catch (_) { /* keep as-is */ }
+  }
+  return p.replace(/\/$/, '').toLowerCase();
+}
+
+function buildExcludedPathMatcher(excludeRaw) {
+  const prefixes = (excludeRaw || '')
+    .split(/[,\n]+/)
+    .map((p) => p.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+  if (!prefixes.length) return null;
+  return (recordPath) => {
+    let p = String(recordPath || '');
+    if (/^https?:\/\//i.test(p)) {
+      try { p = new URL(p).pathname; } catch (_) { /* keep as-is */ }
+    }
+    return prefixes.some((pre) => p === pre || p.startsWith(`${pre}/`));
+  };
+}
+
+// AEM QueryBuilder: full-text search inside PDF assets within a DAM folder.
+// Builds a request like:
+//   <host>/bin/querybuilder.json?path=<dam-folder>&type=dam:Asset
+//     &property=jcr:content/metadata/dc:format&property.value=application/pdf
+//     &fulltext=<keyword>&p.limit=50
+// The host is resolved dynamically per environment; the folder path comes from
+// the block's configured Asset Search Path.
+async function fetchPdfSearchResults(keyword, folderPath) {
+  const q = String(keyword || '').trim();
+  if (q.length < 3) return [];
+
+  const damRoot = normalizeAssetFolderPath(folderPath);
+  if (!damRoot || !damRoot.startsWith('/content/dam/')) return [];
+
+  const isAuthor = isAuthorEnvironment();
+  const listingBase = isAuthor ? '' : await resolveAssetListingBase();
+  if (!isAuthor && !listingBase) return [];
+
+  const origin = isAuthor ? '' : listingBase;
+  const params = new URLSearchParams({
+    path: damRoot,
+    type: 'dam:Asset',
+    property: 'jcr:content/metadata/dc:format',
+    'property.value': 'application/pdf',
+    fulltext: q,
+    'p.limit': '50',
+  });
+  const url = `${origin}${QUERYBUILDER_SERVLET}?${params.toString()}`;
+
+  try {
+    const res = await fetch(url, isAuthor ? { credentials: 'include' } : {});
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.warn('[search] querybuilder HTTP', res.status, url);
+      return [];
+    }
+    const json = await res.json();
+    const hits = Array.isArray(json?.hits) ? json.hits : [];
+    if (!hits.length) return [];
+
+    return hits
+      .filter((hit) => hit && typeof hit.path === 'string' && hit.path.includes('/content/dam/'))
+      .map((hit) => {
+        const damPath = hit.path.replace(/\/$/, '');
+        const fileName = hit.name || damPath.split('/').pop() || '';
+        const title = (hit.title || fileName).replace(/\.[^.]+$/, '') || fileName;
+        const snippet = safeText(hit.excerpt).trim();
+        const fullPath = (!isAuthor && listingBase) ? `${listingBase}${damPath}` : damPath;
+        let lastModified = 0;
+        if (hit.lastModified) {
+          const ms = new Date(hit.lastModified).getTime();
+          if (Number.isFinite(ms)) lastModified = Math.floor(ms / 1000);
+        }
+        return {
+          path: fullPath,
+          title,
+          navTitle: title,
+          description: snippet,
+          body: snippet,
+          tags: '',
+          image: '',
+          publishDate: lastModified,
+          contentType: 'application/pdf',
+          author: '',
+          lastModified,
+          size: 0,
+          robots: '',
+          pdfTextMatch: true,
+        };
+      });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[search] querybuilder fetch failed', e);
+    return [];
+  }
+}
+
+// Merge PDF text hits into the search dataset without duplicating DAM assets.
+function mergePdfSearchIntoData(data, pdfRecords) {
+  if (!pdfRecords.length) return data;
+  const list = Array.isArray(data) ? [...data] : [];
+  const byPath = new Map();
+  list.forEach((r) => byPath.set(normalizeSearchResultPath(r.path), r));
+
+  pdfRecords.forEach((pdf) => {
+    const key = normalizeSearchResultPath(pdf.path);
+    const existing = byPath.get(key);
+    if (existing) {
+      const snippet = pdf.description || pdf.body;
+      if (snippet && !existing.description && !existing.body) {
+        existing.description = snippet;
+        existing.body = snippet;
+        existing.pdfTextMatch = true;
+      }
+    } else {
+      byPath.set(key, pdf);
+      list.push(pdf);
+    }
+  });
+  return list;
+}
+
+// Servlet already matched PDF body text; keep hits even if title-only filter missed them.
+function appendPdfTextMatches(filtered, pdfRecords) {
+  if (!pdfRecords.length) return filtered;
+  const out = Array.isArray(filtered) ? [...filtered] : [];
+  const seen = new Set(out.map((r) => normalizeSearchResultPath(r.path)));
+  pdfRecords.forEach((pdf) => {
+    const key = normalizeSearchResultPath(pdf.path);
+    if (!seen.has(key)) {
+      out.push(pdf);
+      seen.add(key);
+    }
+  });
+  return out;
+}
+
+// Walk a Sling depth-N JSON tree (returned by /content/dam/<path>.<n>.json)
+// collecting every dam:Asset descendant. Builds full DAM paths from the
+// node hierarchy as it recurses.
+function collectAssetsFromTree(tree, rootPath, base, isAuthor) {
+  const records = [];
+
+  const walk = (node, parentPath) => {
+    if (!node || typeof node !== 'object') return;
+    Object.entries(node).forEach(([key, val]) => {
+      // Skip JCR/Sling/CQ housekeeping keys
+      if (key.startsWith('jcr:') || key.startsWith('rep:')
+        || key.startsWith('cq:') || key.startsWith('sling:')) return;
+      if (!val || typeof val !== 'object') return;
+
+      const primary = val['jcr:primaryType'];
+      const childPath = `${parentPath}/${key}`;
+      if (primary === 'dam:Asset') {
+        const { mime, size, modifiedSec } = parseDamAssetNode(val);
+        const record = assetToSearchRecord(key, mime, modifiedSec, parentPath, size);
+        if (!isAuthor && base) {
+          record.path = `${base}${record.path}`;
+          if (record.image) record.image = `${base}${record.image}`;
+        }
+        records.push(record);
+      } else {
+        // sling:Folder, sling:OrderedFolder, etc. → recurse
+        walk(val, childPath);
+      }
+    });
+  };
+
+  walk(tree, rootPath);
+  return records;
+}
+
+// Fetch one folder's Sling JSON, trying the deepest depth first. Publish AEM
+// caps depth per path: the root /content/dam/<site> often allows only depth 2
+// while deeper folders allow 3. We probe down from 3 until one succeeds.
+async function fetchFolderJson(base, folderPath, isAuthor, cacheBust) {
+  /* eslint-disable no-await-in-loop */
+  let lastStatus = 0;
+  for (const depth of [3, 2, 1]) {
+    const url = `${base}${folderPath}.${depth}.json?${cacheBust}`;
+    try {
+      const res = await fetch(url, isAuthor ? { credentials: 'include' } : {});
+      lastStatus = res.status;
+      if (!res.ok) continue;
+      const data = await res.json();
+      // HTTP 300 sometimes returns 200 with an array of allowed depths — skip.
+      if (Array.isArray(data)) continue;
+      return data;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.debug('[search] folder fetch error', url, err);
+    }
+  }
+  /* eslint-enable no-await-in-loop */
+  if (lastStatus) {
+    // eslint-disable-next-line no-console
+    console.warn('[search] folder fetch failed', folderPath, 'last HTTP status:', lastStatus);
+  }
+  return null;
+}
+
+function isFolderNode(node) {
+  const pt = node && node['jcr:primaryType'];
+  return typeof pt === 'string'
+    && (pt === 'nt:folder' || pt === 'sling:Folder' || pt === 'sling:OrderedFolder');
+}
+
+const ASSET_META_ENRICH_CONCURRENCY = 8;
+
+async function enrichOneSearchAsset(record, listingBase, isAuthor, suffix) {
+  const url = /^https?:\/\//i.test(record.path)
+    ? `${record.path}.3.json${suffix}`
+    : `${listingBase}${record.path}.3.json${suffix}`;
+  const res = await fetch(url, isAuthor ? { credentials: 'include' } : {});
+  if (!res.ok) return;
+  const data = await res.json();
+  const jcrContent = data['jcr:content'] || {};
+  const meta = jcrContent.metadata || {};
+  const original = jcrContent.renditions?.original?.['jcr:content'] || {};
+  if (!record.size) {
+    record.size = Number(meta['dam:size'] || original['jcr:data'] || 0);
+  }
+  if (!record.contentType) {
+    record.contentType = jcrContent['jcr:mimeType'] || meta['dc:format'] || original['jcr:mimeType'] || '';
+  }
+  if (!record.lastModified) {
+    const modifiedRaw = meta['jcr:lastModified']
+      || jcrContent['jcr:lastModified']
+      || data['jcr:lastModified']
+      || data['jcr:created']
+      || '';
+    if (modifiedRaw) {
+      const ms = new Date(modifiedRaw).getTime();
+      if (Number.isFinite(ms)) {
+        record.lastModified = Math.floor(ms / 1000);
+        record.publishDate = record.lastModified;
+      }
+    }
+  }
+}
+
+// Enrich only visible results — publish folder JSON is often depth-capped.
+async function enrichSearchAssetsWithMetadata(records, listingBase, isAuthor, cacheBust) {
+  const needsFetch = records.filter((r) => !r.size || !r.lastModified);
+  if (!needsFetch.length) return records;
+  const suffix = cacheBust ? `?${cacheBust}` : '';
+  for (let i = 0; i < needsFetch.length; i += ASSET_META_ENRICH_CONCURRENCY) {
+    const batch = needsFetch.slice(i, i + ASSET_META_ENRICH_CONCURRENCY);
+    /* eslint-disable no-await-in-loop */
+    await Promise.all(batch.map(async (record) => {
+      try {
+        await enrichOneSearchAsset(record, listingBase, isAuthor, suffix);
+      } catch (_) { /* skip failed enrichment */ }
+    }));
+    /* eslint-enable no-await-in-loop */
+  }
+  return records;
+}
+
+// Recursive BFS over the DAM tree. Sling depth caps mean a single fetch at the
+// root only exposes the top folders' names — assets several levels deep are
+// invisible. Re-fetch each discovered subfolder with its own depth probe so
+// every dam:Asset gets collected.
+async function fetchAssetsForSearch(folderPath) {
+  const damRoot = normalizeAssetFolderPath(folderPath);
+  if (!damRoot || !damRoot.startsWith('/content/dam/')) {
+    // eslint-disable-next-line no-console
+    console.warn('[search] invalid asset search path (expected /content/dam/...):', folderPath);
+    return [];
+  }
+  const base = await resolveAssetListingBase();
+  const isAuthor = isAuthorEnvironment();
+  if (!isAuthor && !base) {
+    // eslint-disable-next-line no-console
+    console.warn('[search] no publish hostname available; skipping asset search');
+    return [];
+  }
+  // eslint-disable-next-line no-console
+  console.debug('[search] asset scan start', { damRoot, base: base || '(author same-origin)' });
+
+  // Cache-bust: a unique value per page-load guarantees a fresh trip through
+  // the AEM CORS filter (Fastly otherwise sometimes serves cached headerless
+  // responses). Single value for all calls in this scan keeps Fastly's per-URL
+  // cache hot during the scan but cold across page loads.
+  const cacheBust = `ck=${Date.now()}`;
+
+  const rootPath = damRoot;
+  const queue = [rootPath];
+  const visited = new Set();
+  const all = [];
+  const MAX_FOLDERS = 200; // hard cap to avoid runaway tree scans
+
+  /* eslint-disable no-await-in-loop */
+  while (queue.length && visited.size < MAX_FOLDERS) {
+    // Process up to 8 folders in parallel to keep the scan fast on deep trees.
+    const batch = queue.splice(0, 8).filter((p) => !visited.has(p));
+    batch.forEach((p) => visited.add(p));
+    const fetched = await Promise.all(batch.map((p) => fetchFolderJson(base, p, isAuthor, cacheBust)));
+
+    fetched.forEach((data, i) => {
+      const parent = batch[i];
+      if (!data || typeof data !== 'object') return;
+      Object.entries(data).forEach(([key, val]) => {
+        if (key.startsWith('jcr:') || key.startsWith('rep:')
+          || key.startsWith('cq:') || key.startsWith('sling:')) return;
+        if (!val || typeof val !== 'object') return;
+        const childPath = `${parent}/${key}`;
+        const pt = val['jcr:primaryType'];
+        if (pt === 'dam:Asset') {
+          const { mime, size, modifiedSec } = parseDamAssetNode(val);
+          const record = assetToSearchRecord(key, mime, modifiedSec, parent, size);
+          if (!isAuthor && base) {
+            record.path = `${base}${record.path}`;
+            if (record.image) record.image = `${base}${record.image}`;
+          }
+          all.push(record);
+        } else if (isFolderNode(val) || (!pt && Object.keys(val).some((k) => !k.startsWith('jcr:')))) {
+          // queue for deeper scan — also catches partially-rendered folder nodes
+          // (depth-truncated entries that only expose jcr:primaryType)
+          if (!visited.has(childPath)) queue.push(childPath);
+        }
+      });
+    });
+  }
+  /* eslint-enable no-await-in-loop */
+
+  // eslint-disable-next-line no-console
+  console.debug(`[search] asset scan — ${all.length} assets across ${visited.size} folders`);
+  return all;
+}
+
+// Inline download arrow icon (16x16) for the per-result download button.
+function downloadIconSvg() {
+  return `
+    <svg viewBox="0 0 20 20" width="16" height="16" fill="none" aria-hidden="true" focusable="false">
+      <path d="M10 2v11M5 9l5 5 5-5M3 16h14"
+        stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  `;
+}
+
+// Build an inline SVG document icon with a colored extension label.
+// Returns an HTML string so it can be assigned via innerHTML where needed.
+function docIconSvg(mime, ext) {
+  const e = (ext || '').toUpperCase().slice(0, 4) || 'FILE';
+  // Color tag by document family.
+  let badge = '#888';
+  if (/pdf/i.test(mime)) badge = '#E03434';
+  else if (/word|wordprocessing/i.test(mime)) badge = '#2A5699';
+  else if (/powerpoint|presentation/i.test(mime)) badge = '#D04423';
+  else if (/excel|spreadsheet/i.test(mime)) badge = '#1F6E43';
+  return `
+    <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <rect x="2" y="2" width="56" height="76" rx="4" fill="#fff" stroke="#cfd6dd" stroke-width="2"/>
+      <path d="M36 2 V18 H58" stroke="#cfd6dd" stroke-width="2" fill="none"/>
+      <rect x="2" y="44" width="46" height="22" rx="3" fill="${badge}"/>
+      <text x="6" y="60" font-family="sans-serif" font-weight="700" font-size="13" fill="#fff">${e}</text>
+    </svg>
+  `;
+}
+
 function deriveScopeFromRaw(raw) {
   const value = (raw || '').trim();
   if (!value) return '';
+  // Pull the locale out of an AEM authoring path:
+  //   /content/<site>/language-masters/<lang>/... → /<lang>
   const marker = '/language-masters/';
   const idx = value.indexOf(marker);
   if (idx >= 0) {
@@ -142,6 +719,14 @@ function deriveScopeFromRaw(raw) {
     const lang = (after.split('/')[0] || '').trim();
     return lang ? `/${lang}` : '';
   }
+  // Any other AEM content path (e.g. `/content/<site>` or
+  // `/content/<site>/language-masters` with no trailing locale segment) does
+  // NOT correspond to a delivery-path prefix — query-index records use paths
+  // like `/en/foo`, not `/content/...`. Treating it as a literal prefix wipes
+  // out every result, so leave the scope empty and let the search match all
+  // indexed pages.
+  if (/^\/content\//i.test(value)) return '';
+  // Delivery-path scope: first segment becomes the prefix (e.g. `/en`).
   if (value.startsWith('/')) {
     const seg = value.split('/').filter(Boolean)[0] || '';
     return seg ? `/${seg}` : '';
@@ -177,7 +762,47 @@ function renderResult(result, searchTerms, searchPhrase, titleTag) {
   const li = document.createElement('li');
   const a = document.createElement('a');
   a.href = result.path;
-  if (result.image) {
+
+  // Asset vs page detection: DAM assets live under /content/dam/. On aem.live we
+  // make these paths absolute (https://publish-…/content/dam/…) for cross-origin
+  // fetching, so we match the substring rather than the start-of-string.
+  const isAsset = isDamAssetResult(result);
+  const mime = result.contentType || '';
+  if (isAsset) li.classList.add('search-result-type-asset');
+  const ext = extOf(result.path || '');
+  const isImage = isImageMime(mime) || (isAsset && IMAGE_EXTS.has(ext));
+  const isDoc = isDocMime(mime) || (isAsset && DOC_EXTS.has(ext));
+
+  if (isImage) {
+    // Image asset thumbnail
+    const wrapper = document.createElement('div');
+    wrapper.className = 'search-result-image search-result-asset-image';
+    const imgSrc = isAsset ? result.path : result.image;
+    // createOptimizedPicture() in aem.js uses only url.pathname — it strips
+    // the origin. That's fine for same-origin images, but a cross-origin
+    // publish-AEM URL gets resolved back to aem.live and 404s. So when the
+    // src is already absolute, use a plain <img> with the URL untouched.
+    if (/^https?:\/\//i.test(imgSrc)) {
+      const imgEl = document.createElement('img');
+      imgEl.src = imgSrc;
+      imgEl.alt = result.title || '';
+      imgEl.loading = 'lazy';
+      wrapper.append(imgEl);
+    } else {
+      const pic = createOptimizedPicture(imgSrc, result.title || '', false, [{ width: '375' }]);
+      wrapper.append(pic);
+    }
+    a.append(wrapper);
+    li.classList.add('search-result-type-image');
+  } else if (isDoc) {
+    // Document icon (PDF/DOC/PPT/XLS)
+    const wrapper = document.createElement('div');
+    wrapper.className = 'search-result-image search-result-asset-icon';
+    wrapper.innerHTML = docIconSvg(mime, ext);
+    a.append(wrapper);
+    li.classList.add('search-result-type-doc');
+  } else if (result.image) {
+    // Existing page-result behavior — use the meta image
     const wrapper = document.createElement('div');
     wrapper.className = 'search-result-image';
     const pic = createOptimizedPicture(result.image, '', false, [{ width: '375' }]);
@@ -185,24 +810,87 @@ function renderResult(result, searchTerms, searchPhrase, titleTag) {
     a.append(wrapper);
   }
   const displayTitle = result.navTitle || result.title;
+  let titleEl = null;
   if (displayTitle) {
-    const title = document.createElement(titleTag);
-    title.className = 'search-result-title';
+    titleEl = document.createElement(titleTag);
+    titleEl.className = 'search-result-title';
     const link = document.createElement('a');
     link.href = result.path;
     link.textContent = displayTitle;
     highlightTextElements(searchTerms, [link]);
-    title.append(link);
-    a.append(title);
+    titleEl.append(link);
   }
   const snippetText = getSnippet(result, searchTerms, searchPhrase);
+  let snippetEl = null;
   if (snippetText) {
-    const description = document.createElement('p');
-    description.textContent = snippetText;
-    highlightTextElements(searchTerms, [description]);
-    a.append(description);
+    snippetEl = document.createElement('p');
+    snippetEl.className = 'search-result-snippet';
+    snippetEl.textContent = snippetText;
+    highlightTextElements(searchTerms, [snippetEl]);
+  }
+  let dateEl = null;
+  if (isAsset) {
+    const dateText = formatAssetDateTime(result.lastModified);
+    if (dateText) {
+      dateEl = document.createElement('p');
+      dateEl.className = 'search-result-asset-date';
+      dateEl.textContent = dateText;
+    }
+  }
+
+  // Stack title + snippet + date in one column so the icon height does not
+  // inflate grid row 1 and leave a gap under the title.
+  if (isAsset && snippetEl) {
+    const body = document.createElement('div');
+    body.className = 'search-result-body';
+    if (titleEl) body.append(titleEl);
+    body.append(snippetEl);
+    if (dateEl) body.append(dateEl);
+    a.append(body);
+    li.classList.add('search-result-stacked-body');
+  } else {
+    if (titleEl) a.append(titleEl);
+    if (snippetEl) a.append(snippetEl);
+    if (dateEl) {
+      const insertAfter = snippetEl || titleEl;
+      if (insertAfter) insertAfter.insertAdjacentElement('afterend', dateEl);
+      else a.append(dateEl);
+    }
   }
   li.append(a);
+
+  // Asset-only: append a download button as a sibling of the main link so
+  // clicking the button is separate from clicking the result. href points at
+  // the absolute publish URL (already set on result.path for cross-origin
+  // contexts in fetchAssetsForSearch).
+  if (isAsset && (isImage || isDoc)) {
+    const actions = document.createElement('div');
+    actions.className = 'search-result-asset-actions';
+    const dl = document.createElement('a');
+    dl.className = 'search-result-download';
+    dl.href = result.path;
+    // The download attribute hints to same-origin browsers to save rather
+    // than navigate. Cross-origin browsers ignore it and navigate instead —
+    // that's still a usable "open the asset" experience for the user.
+    const fileNameOnly = (result.path || '').split('/').pop() || (result.title || 'asset');
+    dl.setAttribute('download', fileNameOnly);
+    dl.setAttribute('aria-label', `Download ${result.title || 'asset'}`);
+    dl.setAttribute('target', '_blank');
+    dl.setAttribute('rel', 'noopener');
+    dl.setAttribute('title', `Download ${result.title || 'asset'}`);
+    dl.innerHTML = downloadIconSvg();
+    dl.addEventListener('click', (e) => e.stopPropagation());
+    actions.append(dl);
+    const sizeLabel = getAssetSizeLabel(result);
+    if (sizeLabel) {
+      const sizeEl = document.createElement('span');
+      sizeEl.className = 'search-result-asset-size';
+      sizeEl.textContent = sizeLabel;
+      actions.append(sizeEl);
+    }
+    li.classList.add('search-result-has-actions');
+    li.append(actions);
+  }
   return li;
 }
 
@@ -259,53 +947,85 @@ async function renderResults(block, config, filteredData, searchTerms, searchPhr
 }
 
 function compareFound(hit1, hit2) {
-  return hit1.minIdx - hit2.minIdx;
+  return hit1.score - hit2.score;
 }
 
+// Rank results by match quality. Buckets, highest priority first:
+//   1. Exact phrase appears in navTitle / header
+//   2. ALL search terms appear in navTitle / header
+//   3. Exact phrase appears anywhere in meta (description, body, path)
+//   4. SOME (≥1) search terms appear in navTitle / header
+//   5. SOME search terms appear in meta
+// Within each bucket records are sorted by the earliest match index.
+// This fixes two prior bugs:
+//   • A header check that only required ONE term shadowed phrase matches —
+//     so "Purchase Card" page lost to "card-platinum" asset.
+//   • `minIdx` was accumulating the MAX index, then sorted ascending, which
+//     ranked single-term partial matches above all-term matches.
 function filterData(searchTerms, data, searchPhrase) {
-  const foundInHeader = [];
-  const foundInMeta = [];
-  const foundByPhrase = [];
+  const phraseInHeader = [];
+  const allTermsInHeader = [];
+  const phraseInMeta = [];
+  const someTermsInHeader = [];
+  const someTermsInMeta = [];
+
+  const hasPhrase = searchPhrase && searchPhrase.length >= 2;
 
   (Array.isArray(data) ? data : []).forEach((result) => {
-    let minIdx = -1;
+    const header = safeText(result.header || result.navTitle).toLowerCase();
 
-    searchTerms.forEach((term) => {
-      const idx = safeText(result.header || result.navTitle).toLowerCase().indexOf(term);
-      if (idx < 0) return;
-      if (minIdx < idx) minIdx = idx;
-    });
-
-    if (minIdx >= 0) {
-      foundInHeader.push({ minIdx, result });
-      return;
-    }
-
-    const metaContents = `${safeText(result.navTitle || result.title)} ${safeText(result.description)} ${safeText(result.body)} ${safeText(result.path)?.split('/').pop() || ''}`.toLowerCase();
-
-    // Prefer exact phrase match across meta contents
-    if (searchPhrase && searchPhrase.length >= 2) {
-      const phraseIdx = metaContents.indexOf(searchPhrase);
-      if (phraseIdx >= 0) {
-        foundByPhrase.push({ minIdx: phraseIdx, result });
+    // (1) phrase in header
+    if (hasPhrase) {
+      const i = header.indexOf(searchPhrase);
+      if (i >= 0) {
+        phraseInHeader.push({ score: i, result });
         return;
       }
     }
-    searchTerms.forEach((term) => {
-      const idx = metaContents.indexOf(term);
-      if (idx < 0) return;
-      if (minIdx < idx) minIdx = idx;
-    });
 
-    if (minIdx >= 0) {
-      foundInMeta.push({ minIdx, result });
+    // term-match analysis on header
+    const headerTermIdxs = searchTerms
+      .map((t) => header.indexOf(t))
+      .filter((i) => i >= 0);
+
+    // (2) ALL terms in header
+    if (headerTermIdxs.length === searchTerms.length && searchTerms.length > 0) {
+      allTermsInHeader.push({ score: Math.min(...headerTermIdxs), result });
+      return;
+    }
+
+    const meta = `${safeText(result.navTitle || result.title)} ${safeText(result.description)} ${safeText(result.body)} ${safeText(result.path)?.split('/').pop() || ''}`.toLowerCase();
+
+    // (3) phrase in meta
+    if (hasPhrase) {
+      const i = meta.indexOf(searchPhrase);
+      if (i >= 0) {
+        phraseInMeta.push({ score: i, result });
+        return;
+      }
+    }
+
+    // (4) SOME terms in header (partial)
+    if (headerTermIdxs.length > 0) {
+      someTermsInHeader.push({ score: Math.min(...headerTermIdxs), result });
+      return;
+    }
+
+    // (5) SOME terms in meta
+    const metaTermIdxs = searchTerms
+      .map((t) => meta.indexOf(t))
+      .filter((i) => i >= 0);
+    if (metaTermIdxs.length > 0) {
+      someTermsInMeta.push({ score: Math.min(...metaTermIdxs), result });
     }
   });
 
   return [
-    ...foundByPhrase.sort(compareFound),
-    ...foundInHeader.sort(compareFound),
-    ...foundInMeta.sort(compareFound),
+    ...phraseInHeader.sort(compareFound),
+    ...allTermsInHeader.sort(compareFound),
+    ...phraseInMeta.sort(compareFound),
+    ...someTermsInHeader.sort(compareFound),
+    ...someTermsInMeta.sort(compareFound),
   ].map((item) => item.result);
 }
 
@@ -344,6 +1064,210 @@ function searchResultsContainer(block) {
   return results;
 }
 
+// --- Query suggestions (typeahead) ----------------------------------------
+// EDS has no live backend, so suggestions are derived in-browser from the
+// same query-index JSON the search uses. Recent searches are kept in
+// localStorage and shown when the input is focused but empty.
+const RECENT_SEARCH_KEY = 'eds:recentSearches';
+const MAX_RECENT = 5;
+const MAX_SUGGESTIONS = 8;
+
+function loadRecentSearches() {
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCH_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((s) => typeof s === 'string') : [];
+  } catch (_) { return []; }
+}
+
+function saveRecentSearch(query) {
+  const q = (query || '').trim();
+  if (q.length < 2) return;
+  try {
+    const list = loadRecentSearches().filter((s) => s.toLowerCase() !== q.toLowerCase());
+    list.unshift(q);
+    window.localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+  } catch (_) { /* storage may be disabled */ }
+}
+
+function escapeRegExp(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightSnippet(text, query) {
+  const t = String(text || '');
+  const q = String(query || '').trim();
+  if (!q) return document.createTextNode(t);
+  const re = new RegExp(escapeRegExp(q), 'ig');
+  const frag = document.createDocumentFragment();
+  let lastIdx = 0;
+  let m = re.exec(t);
+  while (m) {
+    if (m.index > lastIdx) frag.append(document.createTextNode(t.slice(lastIdx, m.index)));
+    const mark = document.createElement('mark');
+    mark.textContent = m[0];
+    frag.append(mark);
+    lastIdx = m.index + m[0].length;
+    m = re.exec(t);
+  }
+  if (lastIdx < t.length) frag.append(document.createTextNode(t.slice(lastIdx)));
+  return frag;
+}
+
+// Build suggestion list from the cached index. Rank: titles starting with the
+// query first, then containing the query. De-dupe by lowercased title.
+function buildSuggestions(query, data) {
+  const q = String(query || '').toLowerCase().trim();
+  if (!q || q.length < 2) return [];
+  const startsWith = [];
+  const contains = [];
+  const seen = new Set();
+  (Array.isArray(data) ? data : []).forEach((r) => {
+    if (isExcludedResult(r)) return;
+    const title = (r.navTitle || r.title || '').trim();
+    if (!title) return;
+    const key = title.toLowerCase();
+    if (seen.has(key)) return;
+    if (key.startsWith(q)) {
+      startsWith.push({ title, path: r.path });
+      seen.add(key);
+    } else if (key.includes(q)) {
+      contains.push({ title, path: r.path });
+      seen.add(key);
+    }
+  });
+  return [...startsWith, ...contains].slice(0, MAX_SUGGESTIONS);
+}
+
+function clockIconSvg() {
+  return '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+}
+function searchSuggestionIconSvg() {
+  return '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+}
+
+function renderSuggestionList(container, items, query, onPick, opts = {}) {
+  container.innerHTML = '';
+  if (!items.length) {
+    container.classList.remove('open');
+    return;
+  }
+  const ul = document.createElement('ul');
+  ul.className = 'search-suggestion-list';
+  ul.setAttribute('role', 'listbox');
+  if (opts.heading) {
+    const head = document.createElement('li');
+    head.className = 'search-suggestion-heading';
+    head.textContent = opts.heading;
+    ul.append(head);
+  }
+  items.forEach((item, idx) => {
+    const li = document.createElement('li');
+    li.className = 'search-suggestion-item';
+    li.setAttribute('role', 'option');
+    li.dataset.value = item.title;
+    li.dataset.index = String(idx);
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'search-suggestion-icon';
+    iconWrap.innerHTML = opts.isRecent ? clockIconSvg() : searchSuggestionIconSvg();
+    const text = document.createElement('span');
+    text.className = 'search-suggestion-text';
+    text.append(highlightSnippet(item.title, query));
+    li.append(iconWrap, text);
+    li.addEventListener('mousedown', (e) => {
+      // mousedown (not click) so we fire before blur tears down the dropdown
+      e.preventDefault();
+      onPick(item.title);
+    });
+    ul.append(li);
+  });
+  container.append(ul);
+  container.classList.add('open');
+}
+
+async function ensureSearchData(block, config) {
+  if (block._suggestData) return block._suggestData;
+  const fetched = (await fetchData(config.source)).filter((r) => !isExcludedResult(r));
+  const scope = getScopedPrefix(block);
+  block._suggestData = applySearchPathFilter(fetched, scope);
+  return block._suggestData;
+}
+
+function attachSuggestions(block, input, container, config, onSubmit) {
+  let activeIndex = -1;
+  const updateActive = () => {
+    const items = container.querySelectorAll('.search-suggestion-item');
+    items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+    if (activeIndex >= 0 && items[activeIndex]) {
+      items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+  };
+
+  const close = () => { container.classList.remove('open'); activeIndex = -1; };
+
+  const showRecent = () => {
+    const recent = loadRecentSearches().map((s) => ({ title: s, path: '' }));
+    if (!recent.length) { close(); return; }
+    renderSuggestionList(container, recent, '', (val) => {
+      input.value = val;
+      close();
+      onSubmit(val);
+    }, { heading: 'Recent searches', isRecent: true });
+    activeIndex = -1;
+  };
+
+  const runSuggest = debounce(async (q) => {
+    const data = await ensureSearchData(block, config);
+    const items = buildSuggestions(q, data);
+    renderSuggestionList(container, items, q, (val) => {
+      input.value = val;
+      close();
+      onSubmit(val);
+    });
+    activeIndex = -1;
+  }, 120);
+
+  input.addEventListener('focus', () => {
+    if (!input.value.trim()) showRecent();
+  });
+  input.addEventListener('input', () => {
+    const v = input.value.trim();
+    if (!v) { showRecent(); return; }
+    if (v.length < 2) { close(); return; }
+    runSuggest(v);
+  });
+  input.addEventListener('keydown', (e) => {
+    const open = container.classList.contains('open');
+    const items = container.querySelectorAll('.search-suggestion-item');
+    if (e.key === 'ArrowDown' && open && items.length) {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % items.length;
+      updateActive();
+    } else if (e.key === 'ArrowUp' && open && items.length) {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + items.length) % items.length;
+      updateActive();
+    } else if (e.key === 'Enter' && open && activeIndex >= 0 && items[activeIndex]) {
+      e.preventDefault();
+      const value = items[activeIndex].dataset.value || '';
+      input.value = value;
+      close();
+      onSubmit(value);
+    } else if (e.key === 'Escape') {
+      close();
+    }
+  });
+  input.addEventListener('blur', () => {
+    // delay so mousedown on a suggestion still resolves
+    setTimeout(close, 120);
+  });
+  document.addEventListener('click', (e) => {
+    if (!block.contains(e.target)) close();
+  });
+
+  return { close };
+}
+
 function searchInput(block, config) {
   const input = document.createElement('input');
   input.setAttribute('type', 'search');
@@ -353,14 +1277,8 @@ function searchInput(block, config) {
   input.placeholder = searchPlaceholder;
   input.setAttribute('aria-label', searchPlaceholder);
 
-  // Only attach suggestion handler for icon variant (overlay).
-  // For search-bar variant, we disable suggestions and rely on Enter to expand.
-  const isIconVariant = block.classList.contains('search-icon');
-  if (isIconVariant) {
-    input.addEventListener('input', (e) => {
-      handleSearch(e, block, config);
-    });
-  }
+  // Both variants now show keyword suggestions via attachSuggestions() in
+  // decorate(), so the legacy live-results dropdown isn't wired up here.
 
   input.addEventListener('keyup', (e) => { if (e.code === 'Escape') { clearSearch(block); } });
 
@@ -402,11 +1320,23 @@ function searchBox(block, config) {
 // --- Expanded (inline) results mode for search-bar variant ---
 function buildExpandedLayout(block) {
   let expanded = block.querySelector('.search-expanded');
-  if (expanded) return {
-    expanded,
-    filters: expanded.querySelector('.search-filters'),
-    results: expanded.querySelector('.search-expanded-results .search-results'),
-  };
+  if (expanded) {
+    // Existing layout — return all parts including pagination. If pagination
+    // is missing (older render), create it now so callers always get a node.
+    const filters = expanded.querySelector('.search-filters');
+    const results = expanded.querySelector('.search-expanded-results .search-results');
+    let pagination = expanded.querySelector('.search-expanded-results .search-pagination');
+    if (!pagination) {
+      pagination = document.createElement('nav');
+      pagination.className = 'search-pagination';
+      pagination.setAttribute('aria-label', 'Search results pagination');
+      const wrap = expanded.querySelector('.search-expanded-results');
+      if (wrap) wrap.append(pagination);
+    }
+    return {
+      expanded, filters, results, pagination,
+    };
+  }
 
   expanded = document.createElement('div');
   expanded.className = 'search-expanded';
@@ -416,14 +1346,21 @@ function buildExpandedLayout(block) {
 
   const resultsWrap = document.createElement('div');
   resultsWrap.className = 'search-expanded-results';
+  const resultsCount = document.createElement('p');
+  resultsCount.className = 'search-results-count';
   const results = document.createElement('ul');
   results.className = 'search-results';
   results.dataset.h = findNextHeading(block);
-  resultsWrap.append(results);
+  const pagination = document.createElement('nav');
+  pagination.className = 'search-pagination';
+  pagination.setAttribute('aria-label', 'Search results pagination');
+  resultsWrap.append(resultsCount, results, pagination);
 
   expanded.append(filters, resultsWrap);
   block.append(expanded);
-  return { expanded, filters, results };
+  return {
+    expanded, filters, results, pagination,
+  };
 }
 
 function normalizeTimestamp(value) {
@@ -642,12 +1579,36 @@ function renderTagFilters(container, availableTags, selectedTags, onChange, open
   container.append(group);
 }
 
+/**
+ * Turn a filter group into a collapsible section toggled by its <h4> title.
+ * Collapsed by default; the option rows are hidden via CSS when `.collapsed`.
+ */
+function makeCollapsible(group, title, collapsed = true) {
+  group.classList.add('collapsible');
+  if (collapsed) group.classList.add('collapsed');
+  title.setAttribute('role', 'button');
+  title.setAttribute('tabindex', '0');
+  title.setAttribute('aria-expanded', String(!collapsed));
+  const toggle = () => {
+    const isCollapsed = group.classList.toggle('collapsed');
+    title.setAttribute('aria-expanded', String(!isCollapsed));
+  };
+  title.addEventListener('click', toggle);
+  title.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
+  });
+}
+
 function renderDateFilters(container, selected, onChange) {
   const group = document.createElement('div');
   group.className = 'filter-group date-range';
   const title = document.createElement('h4');
   title.textContent = 'Published';
   group.append(title);
+  makeCollapsible(group, title);
 
   const options = [
     { key: 'any', label: 'Any time' },
@@ -677,6 +1638,7 @@ function renderModifiedFilters(container, selected, onChange) {
   const title = document.createElement('h4');
   title.textContent = 'Modified';
   group.append(title);
+  makeCollapsible(group, title);
 
   const options = [
     { key: 'any', label: 'Any time' },
@@ -706,12 +1668,66 @@ function applyAllFilters(base, selectedPublishedRange, selectedModifiedRange) {
   return byModified;
 }
 
+// Classify a single result into a high-level "type" bucket for the Type filter.
+function classifyResultType(result) {
+  const path = result?.path || '';
+  const mime = result?.contentType || '';
+  const ext = extOf(path);
+  // Anything under /content/dam/ is an asset; otherwise treat as page.
+  const isAsset = /\/content\/dam\//.test(path);
+  if (!isAsset) return 'page';
+  if (isImageMime(mime) || IMAGE_EXTS.has(ext)) return 'image';
+  if (isDocMime(mime) || DOC_EXTS.has(ext)) return 'document';
+  return 'other';
+}
+
+function applyTypeFilter(data, selectedTypes) {
+  if (!Array.isArray(selectedTypes) || !selectedTypes.length) return data;
+  const wanted = new Set(selectedTypes);
+  return data.filter((r) => wanted.has(classifyResultType(r)));
+}
+
+function renderTypeFilters(container, data, selectedTypes, onChange) {
+  const group = document.createElement('div');
+  group.className = 'filter-group type-filter';
+  const title = document.createElement('h4');
+  title.textContent = 'Type';
+  group.append(title);
+
+  // Count items per bucket so the labels show useful numbers
+  const counts = { page: 0, document: 0, image: 0, other: 0 };
+  data.forEach((r) => { counts[classifyResultType(r)] += 1; });
+
+  const options = [
+    { key: 'page', label: 'Pages' },
+    { key: 'document', label: 'Documents' },
+    { key: 'image', label: 'Images' },
+    { key: 'other', label: 'Other' },
+  ].filter((opt) => counts[opt.key] > 0);
+
+  options.forEach((opt) => {
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = (selectedTypes || []).includes(opt.key);
+    cb.addEventListener('change', () => {
+      const cur = new Set(selectedTypes || []);
+      if (cb.checked) cur.add(opt.key); else cur.delete(opt.key);
+      onChange([...cur]);
+    });
+    label.append(cb, document.createTextNode(` ${opt.label} (${counts[opt.key]})`));
+    group.append(label);
+  });
+  container.append(group);
+}
+
 function renderSortControls(container, selected, onChange) {
   const group = document.createElement('div');
   group.className = 'filter-group sort-order';
   const title = document.createElement('h4');
   title.textContent = 'Sort';
   group.append(title);
+  makeCollapsible(group, title);
 
   const options = [
     { key: 'relevance', label: 'Relevance' },
@@ -768,7 +1784,7 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
   if (dropdown && dropdown.parentElement) dropdown.parentElement.classList.remove('open');
 
   block.classList.add('expanded');
-  const { filters, results } = buildExpandedLayout(block);
+  const { filters, results, pagination } = buildExpandedLayout(block);
 
   // fetch/cached data
   let data = cachedData || block._searchData;
@@ -776,39 +1792,116 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
     const fetched = (await fetchData(config.source)).filter((r) => !isExcludedResult(r));
     const scope = getScopedPrefix(block);
     data = applySearchPathFilter(fetched, scope);
+
+    // Optional: append DAM asset records so the same search box surfaces files
+    // (images, PDFs, Office docs) alongside pages. Configured via the
+    // "Asset Search Path" dialog field on the Search block.
+    const assetSearchPath = block.dataset.assetSearchPath || '';
+    if (assetSearchPath) {
+      try {
+        block._assetListingBase = await resolveAssetListingBase();
+        block._assetSearchIsAuthor = isAuthorEnvironment();
+        let assetRecords = await fetchAssetsForSearch(assetSearchPath);
+        // Apply author-configured DAM-path exclusions. Asset record `path` is
+        // either /content/dam/... (author) or https://publish-…/content/dam/…
+        // (aem.live). We match by the pathname so absolute URLs are handled.
+        const excludeRaw = block.dataset.excludeAssetPaths || '';
+        const startsWithExcluded = buildExcludedPathMatcher(excludeRaw);
+        if (startsWithExcluded && assetRecords.length) {
+          const before = assetRecords.length;
+          assetRecords = assetRecords.filter((r) => !startsWithExcluded(r.path));
+          // eslint-disable-next-line no-console
+          console.debug(`[search] excluded ${before - assetRecords.length} asset(s) by path prefix`);
+        }
+        if (assetRecords.length) data = data.concat(assetRecords);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[search] asset search merge failed', e);
+      }
+    }
+
     block._searchData = data;
   }
 
   const searchPhrase = value.toLowerCase();
   const searchTerms = searchPhrase.split(/\s+/).filter((t) => t && t.length >= 2);
-  const base = filterData(searchTerms, data, searchPhrase);
+
+  let pdfRecords = [];
+  try {
+    pdfRecords = await fetchPdfSearchResults(value, block.dataset.assetSearchPath || '');
+    const startsWithExcluded = buildExcludedPathMatcher(block.dataset.excludeAssetPaths || '');
+    if (startsWithExcluded && pdfRecords.length) {
+      pdfRecords = pdfRecords.filter((r) => !startsWithExcluded(r.path));
+    }
+    // eslint-disable-next-line no-console
+    if (pdfRecords.length) console.debug(`[search] readpdf — ${pdfRecords.length} PDF hit(s)`);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[search] readpdf merge failed', e);
+  }
+
+  const dataWithPdf = mergePdfSearchIntoData(data, pdfRecords);
+  const filtered = filterData(searchTerms, dataWithPdf, searchPhrase);
+  const base = appendPdfTextMatches(filtered, pdfRecords);
+
+  // Pagination config: read from block.dataset.pageSize (set by decorate from config cell)
+  // or fall back to a sensible default.
+  const pageSize = Math.max(1, parseInt(block.dataset.pageSize, 10) || 10);
+  // Reset to first page each time the query changes
+  if (block._lastQuery !== value) {
+    block._currentPage = 1;
+    block._lastQuery = value;
+  }
+  let currentPage = block._currentPage || 1;
 
   // state
   let selectedPublishedRange = block._selectedPublishedRange || 'any';
   let selectedModifiedRange = block._selectedModifiedRange || 'any';
   let sortOrder = block._sortOrder || 'relevance';
   let selectedTags = Array.isArray(block._selectedTags) ? block._selectedTags : [];
+  let selectedTypes = Array.isArray(block._selectedTypes) ? block._selectedTypes : [];
   const availableTags = collectTagsWithCounts(data);
+
+  const resetToFirstPage = () => {
+    currentPage = 1;
+    block._currentPage = 1;
+  };
 
   const renderFilters = () => {
     filters.innerHTML = '';
+    const heading = document.createElement('h3');
+    heading.className = 'search-filters__heading';
+    heading.textContent = 'Filter Results';
+    filters.append(heading);
+    // Type filter (pages vs documents vs images) — placed first so it's the
+    // most prominent control. Counts reflect the current matched result set.
+    renderTypeFilters(filters, base, selectedTypes, (next) => {
+      selectedTypes = next;
+      block._selectedTypes = selectedTypes;
+      resetToFirstPage();
+      refreshTagFilters();
+      renderList();
+    });
     // Tag filters are injected dynamically via refreshTagFilters()
     // so only static groups are built here to keep handlers simple
     renderDateFilters(filters, selectedPublishedRange, (next) => {
       selectedPublishedRange = next;
       block._selectedPublishedRange = selectedPublishedRange;
+      resetToFirstPage();
       refreshTagFilters();
       renderList();
     });
     renderModifiedFilters(filters, selectedModifiedRange, (next) => {
       selectedModifiedRange = next;
       block._selectedModifiedRange = selectedModifiedRange;
+      resetToFirstPage();
       refreshTagFilters();
       renderList();
     });
     renderSortControls(filters, sortOrder, (next) => {
       sortOrder = next;
       block._sortOrder = sortOrder;
+      resetToFirstPage();
       renderList();
     });
     // Insert Tags group at the top initially
@@ -835,13 +1928,15 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
       selectedTags = next;
       block._selectedTags = selectedTags;
       // when tags change, recompute available tags again from preTag (still ignoring tags)
+      resetToFirstPage();
       refreshTagFilters();
       renderList();
     }, openPaths);
     const newGroup = temp.firstElementChild;
     if (!newGroup) return;
-    // Always keep Tags group at the top for consistency
-    const first = filters.firstElementChild;
+    // Always keep Tags group at the top of the filter groups (but below the
+    // "Filter Results" heading) for consistency.
+    const first = filters.querySelector('.filter-group');
     if (first) {
       filters.insertBefore(newGroup, first);
     } else {
@@ -849,11 +1944,78 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
     }
   };
 
-  const renderList = () => {
+  // Build pagination control: « Prev | 1 2 3 … N | Next »
+  // Uses ellipses when there are many pages to keep the strip compact.
+  const renderPagination = (totalPages) => {
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const makeBtn = (label, page, { disabled = false, active = false, ariaLabel } = {}) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'search-page-btn';
+      if (active) btn.classList.add('active');
+      if (disabled) btn.disabled = true;
+      btn.textContent = label;
+      if (ariaLabel) btn.setAttribute('aria-label', ariaLabel);
+      if (active) btn.setAttribute('aria-current', 'page');
+      btn.addEventListener('click', () => {
+        if (disabled || active) return;
+        currentPage = page;
+        block._currentPage = page;
+        renderList();
+        // Scroll list into view smoothly so user sees new page top
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      return btn;
+    };
+
+    const makeEllipsis = () => {
+      const span = document.createElement('span');
+      span.className = 'search-page-ellipsis';
+      span.textContent = '…';
+      span.setAttribute('aria-hidden', 'true');
+      return span;
+    };
+
+    // Prev
+    pagination.append(makeBtn('‹', currentPage - 1, {
+      disabled: currentPage <= 1,
+      ariaLabel: 'Previous page',
+    }));
+
+    // Page numbers: show first, last, current ± 1, with ellipses
+    const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
+    const visible = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    let prev = 0;
+    visible.forEach((p) => {
+      if (p - prev > 1) pagination.append(makeEllipsis());
+      pagination.append(makeBtn(String(p), p, {
+        active: p === currentPage,
+        ariaLabel: `Page ${p}`,
+      }));
+      prev = p;
+    });
+
+    // Next
+    pagination.append(makeBtn('›', currentPage + 1, {
+      disabled: currentPage >= totalPages,
+      ariaLabel: 'Next page',
+    }));
+  };
+
+  const renderList = async () => {
     const preTag = applyAllFilters(base, selectedPublishedRange, selectedModifiedRange);
     const afterTags = applyTagFilter(preTag, selectedTags);
-    const filtered = applySort(afterTags, sortOrder);
+    const afterType = applyTypeFilter(afterTags, selectedTypes);
+    const filtered = applySort(afterType, sortOrder);
+    const countEl = block.querySelector('.search-results-count');
+    if (countEl) {
+      const n = filtered.length;
+      countEl.textContent = n === 1 ? '1 result' : `${n} results`;
+    }
     results.innerHTML = '';
+    pagination.innerHTML = '';
     if (!filtered.length) {
       const msg = document.createElement('li');
       msg.textContent = config.placeholders.searchNoResults || 'No results found.';
@@ -862,7 +2024,40 @@ async function activateExpandedSearch(block, config, searchValue, cachedData) {
       return;
     }
     results.classList.remove('no-results');
-    filtered.forEach((r) => results.append(renderResult(r, searchTerms, searchPhrase, results.dataset.h)));
+
+    // Pagination math
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+      block._currentPage = currentPage;
+    }
+    const startIdx = (currentPage - 1) * pageSize;
+    const pageSlice = filtered.slice(startIdx, startIdx + pageSize);
+    const renderGeneration = (block._assetMetaRenderGen || 0) + 1;
+    block._assetMetaRenderGen = renderGeneration;
+
+    pageSlice.forEach((r) => results.append(renderResult(r, searchTerms, searchPhrase, results.dataset.h)));
+
+    const toEnrich = pageSlice.filter(
+      (r) => /\/content\/dam\//.test(r.path || '') && (!r.size || !r.lastModified),
+    );
+    if (toEnrich.length && block.dataset.assetSearchPath) {
+      try {
+        await enrichSearchAssetsWithMetadata(
+          toEnrich,
+          block._assetListingBase || '',
+          block._assetSearchIsAuthor ?? isAuthorEnvironment(),
+          `ck=${Date.now()}`,
+        );
+        if (block._assetMetaRenderGen !== renderGeneration) return;
+        [...results.children].forEach((li, idx) => {
+          const record = pageSlice[idx];
+          if (record && isDamAssetResult(record)) updateAssetResultMeta(li, record);
+        });
+      } catch (_) { /* meta enrichment is best-effort */ }
+    }
+
+    renderPagination(totalPages);
   };
 
   renderFilters();
@@ -878,21 +2073,63 @@ export default async function decorate(block) {
   const isJsonSource = candidate && /\.json(\?|$)/.test(candidate) && /query-index\.json(\?|$)/.test(candidate);
   let source = isJsonSource ? candidate : '';
   if (!source) {
+    // Resolve the locale for /<locale>/query-index.json from, in order:
+    //   1. <html lang="…"> (set on author / aem.page)
+    //   2. first path segment of the URL when it looks like a locale (aem.live
+    //      sometimes ships pages without a lang attribute on <html>)
+    //   3. empty (root-level query-index.json — not present in this repo so
+    //      this case yields a 404 and an empty result set)
     const htmlLang = (document.documentElement.getAttribute('lang') || '').trim();
     const langMatch = htmlLang.match(/^[a-z]{2}(?:-[A-Z]{2})?$/);
-    const locale = langMatch ? htmlLang.split('-')[0] : '';
+    let locale = langMatch ? htmlLang.split('-')[0] : '';
+    if (!locale) {
+      const firstSeg = (window.location.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
+      if (/^[a-z]{2}$/.test(firstSeg)) locale = firstSeg;
+    }
     source = `${locale ? `/${locale}` : ''}/query-index.json`;
     // eslint-disable-next-line no-console
     if (candidate && !isJsonSource) console.log('[search] ignoring non-JSON config anchor for source:', candidate);
   }
 
-  // Read style from second row and hide first two rows (config rows)
+  // Read style (row 2), pageSize (row 3), assetSearchPath (row 4); hide all config rows.
   try {
     const styleText = block.querySelector(':scope > div:nth-child(2) > div p')?.textContent?.trim();
     if (styleText) block.classList.add(styleText);
+    const pageSizeText = block.querySelector(':scope > div:nth-child(3) > div p')?.textContent?.trim()
+      || block.querySelector(':scope > div:nth-child(3) > div')?.textContent?.trim();
+    const pageSizeNum = parseInt(pageSizeText, 10);
+    if (pageSizeNum && pageSizeNum > 0) block.dataset.pageSize = String(pageSizeNum);
+
+    // Asset search path — accepts an anchor href (aem-content picker) or plain text.
+    const row4 = block.querySelector(':scope > div:nth-child(4)');
+    if (row4) {
+      const anchor = row4.querySelector('a');
+      const anchorHref = anchor?.getAttribute('title')
+        || anchor?.getAttribute('href')
+        || anchor?.textContent
+        || '';
+      const plainText = row4.querySelector('div p')?.textContent
+        || row4.querySelector('div')?.textContent
+        || '';
+      const assetPath = normalizeAssetFolderPath(anchorHref || plainText || '');
+      if (assetPath) block.dataset.assetSearchPath = assetPath;
+    }
+
+    // Excluded asset paths — comma/newline separated DAM path prefixes.
+    // Any asset record whose absolute or relative path starts with one of
+    // these prefixes is dropped before merging into search results.
+    const row5 = block.querySelector(':scope > div:nth-child(5)');
+    if (row5) {
+      const excludeText = (row5.querySelector('div p')?.textContent
+        || row5.querySelector('div')?.textContent
+        || '').trim();
+      if (excludeText) block.dataset.excludeAssetPaths = excludeText;
+    }
+
     const row1 = block.querySelector(':scope > div:nth-child(1)');
     const row2 = block.querySelector(':scope > div:nth-child(2)');
-    [row1, row2].forEach((r) => { if (r) r.style.display = 'none'; });
+    const row3 = block.querySelector(':scope > div:nth-child(3)');
+    [row1, row2, row3, row4, row5].forEach((r) => { if (r) r.style.display = 'none'; });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('[search] style/hide rows error', e);
@@ -958,9 +2195,20 @@ export default async function decorate(block) {
     };
     const overlayInput = panel.querySelector('input.search-input');
     if (overlayInput) {
+      // Mount a query-suggestion dropdown above the overlay's results dropdown.
+      // Picking a suggestion redirects to /search?q=<value> like Enter does.
+      const overlayBox = overlayInput.closest('.search-box');
+      const suggestions = document.createElement('div');
+      suggestions.className = 'search-suggestions';
+      if (overlayBox) overlayBox.append(suggestions);
+      attachSuggestions(block, overlayInput, suggestions, { source, placeholders }, (val) => {
+        saveRecentSearch(val);
+        redirectToSearchPage(val);
+      });
       overlayInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !suggestions.classList.contains('open')) {
           e.preventDefault();
+          saveRecentSearch(overlayInput.value || '');
           redirectToSearchPage(overlayInput.value || '');
         }
       });
@@ -971,18 +2219,29 @@ export default async function decorate(block) {
       searchBox(block, { source, placeholders }),
     );
 
-    // Enter activates expanded mode
+    // Ensure the (results) suggestion dropdown isn't present in bar variant —
+    // we replace it with a lightweight query-suggestion dropdown.
+    const oldDropdown = block.querySelector('.search-dropdown');
+    if (oldDropdown) oldDropdown.remove();
+
     const input = block.querySelector('input.search-input');
+    const box = input.closest('.search-box');
+    const suggestions = document.createElement('div');
+    suggestions.className = 'search-suggestions';
+    if (box) box.append(suggestions);
+    attachSuggestions(block, input, suggestions, { source, placeholders }, async (val) => {
+      saveRecentSearch(val);
+      await activateExpandedSearch(block, { source, placeholders }, val);
+    });
+
+    // Enter activates expanded mode (only when suggestion list isn't driving)
     input.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !suggestions.classList.contains('open')) {
         e.preventDefault();
+        saveRecentSearch(input.value || '');
         await activateExpandedSearch(block, { source, placeholders }, input.value);
       }
     });
-
-    // Ensure suggestions are hidden for search-bar variant
-    const dropdown = block.querySelector('.search-dropdown');
-    if (dropdown) dropdown.remove();
   }
 
   if (searchParams.get('q')) {

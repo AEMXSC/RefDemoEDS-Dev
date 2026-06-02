@@ -23,7 +23,7 @@
         "component": "aem-content-fragment",
         "name": "theme_cf_reference",
         "label": "Brand Theme",
-        "description": "Select the CF with authored values for the brand theme. This will be applied on the pages",
+        "description": "Select the Brand Theme Content Fragment. Only applies when Theme in the dropdown below is set to default",
         "valueType": "string",
         "validation": {
             "rootPath": "/content/dam"
@@ -33,7 +33,7 @@
           "component": "select",
           "name": "theme",
           "label": "Theme",
-          "description": "Note: This takes priority over CF based theme.",
+          "description": "This takes priority over CF based theme except when default is selected.",
 
           "options": [
             {
@@ -501,6 +501,10 @@
             "value": "default-button-link"
           },
           {
+            "name": "Link (Light / On dark)",
+            "value": "default-button-link-light"
+          },
+          {
             "name": "Secondary Button",
             "value": "default-button-secondary"
           },
@@ -509,6 +513,26 @@
             "value": "default-button-dark"
           }
         ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "alignment",
+        "label": "Alignment",
+        "value": "",
+        "options": [
+          { "name": "Left (default)", "value": "" },
+          { "name": "Center", "value": "btn-align-center" },
+          { "name": "Right", "value": "btn-align-right" }
+        ]
+      },
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "icon",
+        "label": "Icon Image",
+        "description": "Optional small image shown before the button label.",
+        "multi": false
       }
     ]
   },
@@ -604,13 +628,253 @@
     ]
   },
   {
+    "id": "promotion",
+    "fields": [
+      {
+        "component": "aem-content-fragment",
+        "name": "reference",
+        "label": "Default Content Fragment",
+        "valueType": "string",
+        "required": true,
+        "variationName": "contentFragmentVariation",
+        "description": "The default content fragment to display. At runtime, Adobe Target replaces this with a personalized offer for the audience, if configured."
+      },
+      {
+        "component": "text",
+        "name": "contentFragmentVariation",
+        "label": "Selected Variation",
+        "value": "",
+        "valueType": "string",
+        "description": "Persisted variation for publish; leave empty for master.",
+        "condition": { "==": [ { "var": "__alwaysFalse" }, true ] }
+      },
+      {
+        "component": "select",
+        "name": "displaystyle",
+        "label": "Display Style",
+        "options": [
+          { "name": "Default (card)", "value": "" },
+          { "name": "Image Left", "value": "image-left" },
+          { "name": "Image Right", "value": "image-right" },
+          { "name": "Image Top", "value": "image-top" },
+          { "name": "Image Bottom", "value": "image-bottom" }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "alignment",
+        "label": "Text Alignment",
+        "options": [
+          { "name": "Center", "value": "text-center" },
+          { "name": "Left", "value": "text-left" },
+          { "name": "Right", "value": "text-right" }
+        ]
+      },
+      {
+        "component": "text",
+        "name": "mbox",
+        "label": "Target Mbox Name",
+        "valueType": "string",
+        "required": true,
+        "value": "target-global-mbox",
+        "description": "The Adobe Target mbox name for personalization. Default is: 'target-global-mbox'."
+      }
+    ]
+  },
+  {
+    "id": "title-block",
+    "fields": [
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "title",
+        "label": "Title Text",
+        "value": "Title"
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "headingLevel",
+        "label": "Heading Level",
+        "value": "h2",
+        "options": [
+          { "name": "H1", "value": "h1" },
+          { "name": "H2", "value": "h2" },
+          { "name": "H3", "value": "h3" },
+          { "name": "H4", "value": "h4" },
+          { "name": "H5", "value": "h5" },
+          { "name": "H6", "value": "h6" }
+        ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "align",
+        "label": "Text Alignment",
+        "value": "",
+        "options": [
+          { "name": "Default", "value": "" },
+          { "name": "Left", "value": "align-left" },
+          { "name": "Center", "value": "align-center" },
+          { "name": "Right", "value": "align-right" }
+        ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "color",
+        "label": "Color",
+        "value": "",
+        "options": [
+          { "name": "Default", "value": "" },
+          { "name": "Primary", "value": "color-primary" },
+          { "name": "Light / On dark", "value": "color-light" },
+          { "name": "Dark", "value": "color-dark" },
+          { "name": "Muted", "value": "color-muted" }
+        ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "paddingTop",
+        "label": "Padding Top",
+        "value": "",
+        "options": [
+          { "name": "Default", "value": "" },
+          { "name": "None", "value": "pt-none" },
+          { "name": "Small", "value": "pt-small" },
+          { "name": "Medium", "value": "pt-medium" },
+          { "name": "Large", "value": "pt-large" },
+          { "name": "XLarge", "value": "pt-xlarge" }
+        ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "paddingBottom",
+        "label": "Padding Bottom",
+        "value": "",
+        "options": [
+          { "name": "Default", "value": "" },
+          { "name": "None", "value": "pb-none" },
+          { "name": "Small", "value": "pb-small" },
+          { "name": "Medium", "value": "pb-medium" },
+          { "name": "Large", "value": "pb-large" },
+          { "name": "XLarge", "value": "pb-xlarge" }
+        ]
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "bgColor",
+        "label": "Background Color",
+        "description": "Optional CSS color (hex, rgb, or var). When set, the title appears in a colored band. Examples: #0a66c2, rgb(10,102,194), var(--main-accent-color)",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "id": "download-list",
+    "fields": [
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "title",
+        "label": "Section Title",
+        "value": "Download Center"
+      },
+      {
+        "component": "aem-content",
+        "valueType": "string",
+        "name": "assetFolder",
+        "label": "Asset Folder",
+        "description": "DAM folder to list. All files inside this folder are listed automatically. Leave empty if you want to pick individual files below.",
+        "validation": {
+          "rootPath": "/content/dam"
+        }
+      },
+      {
+        "component": "reference",
+        "valueType": "string",
+        "name": "individualAssets",
+        "label": "Individual Files",
+        "description": "Pick one or more files from AEM Assets — can span multiple folders. When set, this takes priority over Asset Folder.",
+        "multi": true
+      },
+      {
+        "component": "multiselect",
+        "valueType": "string",
+        "name": "fileTypes",
+        "label": "File Types",
+        "description": "MIME type prefixes or extensions to include (e.g. application/pdf, pdf, doc, xls). Leave empty to include all.",
+        "value": "",
+        "options": [
+          { "name": "PDF", "value": "pdf" },
+          { "name": "Word (.doc/.docx)", "value": "doc" },
+          { "name": "Excel (.xls/.xlsx)", "value": "xls" },
+          { "name": "PowerPoint (.ppt/.pptx)", "value": "ppt" },
+          { "name": "Images", "value": "image" },
+          { "name": "Video", "value": "video" },
+          { "name": "Audio", "value": "audio" },
+          { "name": "Archive (.zip)", "value": "zip" }
+        ]
+      },
+      {
+        "component": "select",
+        "valueType": "string",
+        "name": "sortBy",
+        "label": "Sort By",
+        "value": "name",
+        "options": [
+          { "name": "Name (A→Z)", "value": "name" },
+          { "name": "Name (Z→A)", "value": "name-desc" },
+          { "name": "Newest first", "value": "modified-desc" },
+          { "name": "Oldest first", "value": "modified" },
+          { "name": "Largest first", "value": "size-desc" },
+          { "name": "Smallest first", "value": "size" }
+        ]
+      },
+      {
+        "component": "text",
+        "valueType": "number",
+        "name": "limit",
+        "label": "Max Items",
+        "description": "0 = no limit",
+        "value": "0"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "downloadLabel",
+        "label": "Download Button Label",
+        "description": "Optional text next to the download icon. Leave empty to show only the icon."
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "bgColor",
+        "label": "Background Color",
+        "description": "CSS color for the block background (hex, rgb, or var). Example: #ffffff",
+        "value": "#ffffff"
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "textColor",
+        "label": "Text Color",
+        "description": "CSS color for the text (hex, rgb, or var). Example: #1f1f1f",
+        "value": "#1f1f1f"
+      }
+    ]
+  },
+  {
     "id": "hero",
     "fields": [
       {
         "component": "reference",
         "valueType": "string",
         "name": "image",
-        "label": "Image",
+        "label": "Asset",
         "multi": false
       },
       {
@@ -630,7 +894,7 @@
       {
             "component": "boolean",
             "label": "Enable Underline in Title",
-            "description": "Enable underline in title",
+            "description": "Enable underline for H1 elements in your text",
             "name": "enableunderline",
             "value": "true",
             "valueType": "boolean"
@@ -641,26 +905,61 @@
         "label": "Hero Layout Style",
         "options": [
           {
-            "name": "Default",
+            "name": "Default (Asset-Background)",
             "value": "overlay"
           },
           {
-            "name": "Image Left",
+            "name": "Asset Left",
             "value": "image-left"
           },
           {
-            "name": "Image Right",
+            "name": "Asset Right",
             "value": "image-right"
           },
           {
-            "name": "Image-Background Text-Left",
+            "name": "Asset-Background Text-Left",
             "value": "image-background-text-left"
           },
           {
-            "name": "Image-Background Text-Right",
+            "name": "Asset-Background Text-Right",
             "value": "image-background-text-right"
           }
         ]
+      },
+      
+      {
+        "component": "select",
+        "name": "backgroundstyle",
+        "label": "Text Background Style",
+        "options": [
+          {
+            "name": "Default",
+            "value": "default"
+          },
+          {
+            "name": "Theme Dark",
+            "value": "theme-dark"
+          },
+          {
+            "name": "Theme Light",
+            "value": "theme-light"
+          }
+        ]
+      },
+      {
+        "component": "text",
+        "valueType": "string",
+        "name": "ctalabel",
+        "label": "CTA Button Label",
+        "description": "Text shown on the call-to-action button. Leave empty to hide the button.",
+        "value": ""
+      },
+      {
+        "component": "aem-content",
+        "valueType": "string",
+        "name": "ctalink",
+        "label": "CTA Button Link",
+        "description": "Target page or URL for the call-to-action button."
       },
       {
         "component": "select",
@@ -686,23 +985,12 @@
         ]
       },
       {
-        "component": "select",
-        "name": "backgroundstyle",
-        "label": "Background Style",
-        "options": [
-          {
-            "name": "Default",
-            "value": "default"
-          },
-          {
-            "name": "Theme Dark",
-            "value": "theme-dark"
-          },
-          {
-            "name": "Theme Light",
-            "value": "theme-light"
-          }
-        ]
+        "component": "text",
+        "valueType": "string",
+        "name": "badge",
+        "label": "Badge / Highlight Text",
+        "description": "Optional pill-style label shown above the title.",
+        "value": ""
       }
     ]
   },
@@ -975,6 +1263,31 @@
               "value": "search-icon"
             }
           ]
+        },
+        {
+          "component": "text",
+          "valueType": "number",
+          "name": "pageSize",
+          "label": "Results Per Page",
+          "value": "10",
+          "description": "Number of search results to show per page in the expanded results view."
+        },
+        {
+          "component": "aem-content",
+          "valueType": "string",
+          "name": "assetSearchPath",
+          "label": "Asset Search Path",
+          "description": "Optional DAM folder to include in search results (e.g. /content/dam/my-site). Assets are returned alongside pages — images render as thumbnails, documents as icons.",
+          "validation": {
+            "rootPath": "/content/dam"
+          }
+        },
+        {
+          "component": "text",
+          "valueType": "string",
+          "name": "excludeAssetPaths",
+          "label": "Excluded Asset Paths",
+          "description": "Comma- or newline-separated DAM paths to exclude from asset search results. Any asset whose path starts with one of these prefixes is dropped. Example: /content/dam/my-site/internal, /content/dam/my-site/drafts"
         }
       ]
   },
@@ -982,10 +1295,41 @@
     "id": "carousel",
     "fields": [
       {
-        "component": "reference",
+        "component": "boolean",
+        "valueType": "boolean",
+        "name": "autoplay",
+        "label": "Auto-slide",
+        "description": "Automatically advance to the next slide on a timer. Pauses on hover.",
+        "value": false
+      },
+      {
+        "component": "select",
         "valueType": "string",
-        "name": "card",
-        "value": ""
+        "name": "autoplayInterval",
+        "label": "Auto-slide Interval",
+        "description": "Time between slides when Auto-slide is on.",
+        "value": "5000",
+        "options": [
+          { "name": "3 seconds", "value": "3000" },
+          { "name": "5 seconds", "value": "5000" },
+          { "name": "7 seconds", "value": "7000" },
+          { "name": "10 seconds", "value": "10000" }
+        ],
+        "condition": { "===": [{ "var": "autoplay" }, true] }
+      },
+      {
+        "component": "select",
+        "name": "imageZoom",
+        "label": "Image Zoom Effect",
+        "valueType": "string",
+        "value": "",
+        "description": "Applies to all cards in this carousel.",
+        "options": [
+          { "name": "None", "value": "" },
+          { "name": "Zoom In Effect", "value": "zoom-in" },
+          { "name": "Zoom Out Effect", "value": "zoom-out" },
+          { "name": "Swipe", "value": "big-zoom" }
+        ]
       }
     ]
   },
