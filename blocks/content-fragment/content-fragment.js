@@ -25,7 +25,7 @@ export default async function decorate(block) {
   const ctaStyle = block.querySelector(':scope div:nth-child(5) > div')?.textContent?.trim() || 'button';
 
   block.innerHTML = '';
-  const isAuthor = isAuthorEnvironment();
+  let isAuthor = isAuthorEnvironment();
 
   // Prepare request configuration based on environment
   const requestConfig = isAuthor
