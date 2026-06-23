@@ -73,6 +73,36 @@ const experimentationConfig = {
 		}*/
 		//return false;
   }
+
+	export function isAuthorEnvironment() {
+		if (window?.location?.origin?.includes('author')) {
+			return true;
+		} else {
+			return false;
+		}
+		/*
+		if(document.querySelector('*[data-aue-resource]') !== null){
+		return true;
+		}*/
+		//return false;
+	}
+
+	export function normalizeAemPath(path) {
+		if (!path) return path;
+		let pathname = path;
+		if (/^https?:\/\//i.test(path)) {
+			try {
+				pathname = new URL(path).pathname;
+			} catch {
+				return path;
+			}
+		}
+		if (!pathname.startsWith('/content/')) return pathname;
+		if (isAuthorEnvironment()) {
+			return pathname.endsWith('.html') ? pathname : `${pathname}.html`;
+		}
+		return pathname.replace(/^\/content\/[^/]+\/language-masters/, '').replace(/\.html$/, '');
+	}
   
   /**
    * Move instrumentation attributes from a given element to another given element.
