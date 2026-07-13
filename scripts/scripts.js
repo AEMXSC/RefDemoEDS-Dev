@@ -73,6 +73,48 @@ const experimentationConfig = {
 		}*/
 		//return false;
   }
+
+/**
+ * Normalizes an AEM content path for the current environment.
+ * On author, ensures an absolute /content path with .html; on publish,
+ * strips the /content/<site>/language-masters prefix and .html extension.
+ * @param {string} path the AEM path or URL to normalize
+ * @returns {string} the normalized path
+ */
+export function normalizeAemPath(path) {
+  if (!path) return path;
+  let pathname = path;
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      pathname = new URL(path).pathname;
+    } catch {
+      return path;
+    }
+  }
+  if (!pathname.startsWith('/content/')) return pathname;
+  if (isAuthorEnvironment()) {
+    return pathname.endsWith('.html') ? pathname : `${pathname}.html`;
+  }
+  return pathname.replace(/^\/content\/[^/]+\/language-masters/, '').replace(/\.html$/, '');
+}
+
+/**
+ * Normalizes a category tag value to a display label,
+ * e.g. "luma:mountain-bikes" -> "Mountain bikes".
+ * @param {string} value the raw category value
+ * @returns {string} the normalized display value
+ */
+export function normalizeCategoryValue(value) {
+  const rawValue = String(value || '').trim();
+  const normalized = rawValue
+    .split(':')
+    .pop()
+    .replace(/-/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
   
   /**
    * Move instrumentation attributes from a given element to another given element.

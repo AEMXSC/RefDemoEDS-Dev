@@ -347,6 +347,157 @@ function createOptimizedPicture(
 }
 
 /**
+ * Absolute href for AEM web-optimized image delivery (`ImageRef._dynamicUrl`).
+ * @param {{ _dynamicUrl?: string, _publishUrl?: string, _authorUrl?: string }} damImageURL
+ * @returns {string|null}
+ * @see https://experienceleague.adobe.com/en/docs/experience-manager-learn/getting-started-with-aem-headless/how-to/images
+ */
+function resolveAemDynamicImageHref(damImageURL) {
+  const { _dynamicUrl, _publishUrl, _authorUrl } = damImageURL || {};
+  if (!_dynamicUrl) return null;
+  const originRef = _publishUrl || _authorUrl;
+  try {
+    if (_dynamicUrl.startsWith('http://') || _dynamicUrl.startsWith('https://')) {
+      return _dynamicUrl;
+    }
+    if (!originRef) return null;
+    const { origin } = new URL(originRef);
+    const path = _dynamicUrl.startsWith('/') ? _dynamicUrl : `/${_dynamicUrl}`;
+    return `${origin}${path}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Responsive product image using AEM `_dynamicUrl` + `width` query params (srcset + sizes).
+ * Returns null if `_dynamicUrl` is missing (persisted GraphQL must request it on `ImageRef`).
+ * @param {{ _dynamicUrl?: string, _publishUrl?: string, _authorUrl?: string }} damImageURL
+ * @param {string} alt
+ * @param {boolean} eager
+ * @param {number[]} widths Descending not required; sorted internally
+ * @param {string} sizes
+ * @param {string|null} fetchpriority
+ * @returns {HTMLPictureElement|null}
+ */
+function createResponsiveAemDamPicture(
+  damImageURL,
+  alt = '',
+  eager = false,
+  widths = [320, 640],
+  sizes = '200px',
+  fetchpriority = null,
+) {
+  const baseHref = resolveAemDynamicImageHref(damImageURL);
+  if (!baseHref) return null;
+
+  const sorted = [...widths].sort((a, b) => b - a);
+  const picture = document.createElement('picture');
+  const img = document.createElement('img');
+  img.alt = alt;
+  img.loading = eager ? 'eager' : 'lazy';
+  if (eager || fetchpriority) {
+    img.setAttribute('fetchpriority', fetchpriority || 'high');
+  }
+  img.setAttribute('sizes', sizes);
+
+  const parts = sorted.map((w) => {
+    try {
+      const u = new URL(baseHref);
+      u.searchParams.set('width', String(w));
+      if (!u.searchParams.has('preferwebp')) u.searchParams.set('preferwebp', 'true');
+      return `${u.href} ${w}w`;
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+  if (!parts.length) return null;
+  img.setAttribute('srcset', parts.join(', '));
+
+  try {
+    const fallback = new URL(baseHref);
+    fallback.searchParams.set('width', String(sorted[sorted.length - 1]));
+    if (!fallback.searchParams.has('preferwebp')) fallback.searchParams.set('preferwebp', 'true');
+    img.src = fallback.href;
+  } catch {
+    return null;
+  }
+
+  picture.appendChild(img);
+  return picture;
+}
+
+/**
+ * Luma product listing vs PDP image: prefers AEM web-optimized `_dynamicUrl` when GraphQL returns it.
+ * @param {{ _dynamicUrl?: string, _publishUrl?: string, _authorUrl?: string }} damImageURL
+ * @param {string} alt
+ * @param {{ isAuthor?: boolean, eager?: boolean }} options eager=true uses larger renditions (PDP hero)
+ * @returns {HTMLPictureElement|null}
+ */
+function createLumaProductImagePicture(damImageURL, alt = '', { isAuthor = false, eager = false } = {}) {
+  // Handle RemoteRef (remote/Dynamic Media asset from connected DAM)
+  // eslint-disable-next-line no-underscore-dangle
+  if (damImageURL?.__typename === 'RemoteRef' || (damImageURL?.repositoryId && damImageURL?.assetId)) {
+    const repositoryId = (damImageURL.repositoryId || '').trim();
+    const assetId = (damImageURL.assetId || '').trim();
+    const fileName = 'asset.png';
+    if (repositoryId && assetId && fileName) {
+      const host = repositoryId.startsWith('http://') || repositoryId.startsWith('https://')
+        ? repositoryId.replace(/\/$/, '')
+        : `https://${repositoryId}`;
+      const remoteUrl = `${host}/adobe/dynamicmedia/deliver/${assetId}/${fileName}`;
+      const picture = document.createElement('picture');
+      const img = document.createElement('img');
+      img.src = remoteUrl;
+      img.alt = alt;
+      img.loading = eager ? 'eager' : 'lazy';
+      if (eager) img.setAttribute('fetchpriority', 'high');
+      picture.appendChild(img);
+      return picture;
+    }
+    return null;
+  }
+
+  if (damImageURL?._dynamicUrl && (damImageURL._publishUrl || damImageURL._authorUrl)) {
+    const listingWidths = [240, 480];
+    const detailWidths = [480, 960, 1200];
+    const listingSizes = '(max-width: 768px) 42vw, 220px';
+    const detailSizes = '(max-width: 900px) 100vw, min(640px, 55vw)';
+    const widths = eager ? detailWidths : listingWidths;
+    const sizes = eager ? detailSizes : listingSizes;
+    const pic = createResponsiveAemDamPicture(damImageURL, alt, eager, widths, sizes);
+    if (pic) return pic;
+  }
+
+  const imgUrl = isAuthor ? damImageURL?._authorUrl : damImageURL?._publishUrl;
+  if (!imgUrl) return null;
+
+  if (!isAuthor && imgUrl.startsWith('http')) {
+    const picture = document.createElement('picture');
+    const img = document.createElement('img');
+    img.src = imgUrl;
+    img.alt = alt;
+    img.loading = eager ? 'eager' : 'lazy';
+    if (eager) img.setAttribute('fetchpriority', 'high');
+    picture.appendChild(img);
+    return picture;
+  }
+
+  const breakpoints = eager
+    ? [
+      { media: '(min-width: 900px)', width: '800' },
+      { media: '(min-width: 600px)', width: '600' },
+      { width: '400' },
+    ]
+    : [
+      { media: '(min-width: 900px)', width: '600' },
+      { media: '(min-width: 600px)', width: '400' },
+      { width: '320' },
+    ];
+  return createOptimizedPicture(imgUrl, alt, eager, breakpoints);
+}
+
+/**
  * Set template (page structure) and theme (page styles).
  */
 function decorateTemplateAndTheme() {
@@ -813,6 +964,7 @@ init();
 
 export {
   buildBlock,
+  createLumaProductImagePicture,
   createOptimizedPicture,
   decorateBlock,
   decorateBlocks,
