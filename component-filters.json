@@ -15,6 +15,7 @@
       "carousel",
       "columns",
       "contentfragment",
+      "create-account",
       "download-list",
       "dm-template",
       "dynamic-media-image",
@@ -109,5 +110,9 @@
       "wizard",
       "range"
     ]
+  },
+  {
+    "id": "create-account",
+    "components": []
   }
 ]
