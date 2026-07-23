@@ -380,52 +380,38 @@
         "valueType": "string"
       },
       {
-        "component": "select",
-        "name": "style",
-        "label": "Style",
-        "options": [
-          {
-            "name": "default",
-            "value": ""
-          },
-          {
-            "name": "Image Top",
-            "value": "image-top"
-          },
-          {
-            "name": "Image Bottom",
-            "value": "image-bottom"
-          },
-          {
-            "name": "Teaser Overlay",
-            "value": "teaser-overlay"
-          },
-          {
-            "name": "Teaser Card",
-            "value": "teaser-card"
-          }
-        ]
+        "component": "text",
+        "valueType": "string",
+        "name": "ctalabel",
+        "label": "CTA Button Label",
+        "description": "Text shown on the call-to-action button. Leave empty to hide the button.",
+        "value": ""
+      },
+      {
+        "component": "aem-content",
+        "valueType": "string",
+        "name": "ctalink",
+        "label": "CTA Button Link",
+        "description": "Target page or URL for the call-to-action button."
       },
       {
         "component": "select",
         "name": "ctastyle",
         "label": "CTA Style",
+        "valueType": "string",
+        "value": "button",
         "options": [
-         {
-            "name": "Link",
-            "value": "cta-link"
-          },
           {
             "name": "Primary Button",
-            "value": "cta-button"
+            "value": "button"
           },
           {
             "name": "Secondary Button",
-            "value": "cta-button-secondary"
+            "value": "button-secondary"
           },
           {
             "name": "Dark Button",
-            "value": "cta-button-dark"
+            "value": "button-dark"
           }
         ]
       }

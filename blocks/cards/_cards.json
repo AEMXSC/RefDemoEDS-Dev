@@ -50,6 +50,21 @@
           "valueType": "string"
         },
         {
+          "component": "text",
+          "valueType": "string",
+          "name": "ctalabel",
+          "label": "CTA Button Label",
+          "description": "Text shown on the call-to-action button. Leave empty to hide the button.",
+          "value": ""
+        },
+        {
+          "component": "aem-content",
+          "valueType": "string",
+          "name": "ctalink",
+          "label": "CTA Button Link",
+          "description": "Target page or URL for the call-to-action button."
+        },
+        {
           "component": "select",
           "name": "ctastyle",
           "label": "CTA Style",
