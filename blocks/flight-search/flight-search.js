@@ -470,7 +470,7 @@ function setupClickOutside() {
 }
 
 // Main decorate function
-export default async function decorate(block) {
+export default async function decorate(block) { // cache
   const config = readBlockConfig(block) || {};
   const isAuthor = isAuthorEnvironment();
   /* Hide button config rows (index >= 7) on published/live */
