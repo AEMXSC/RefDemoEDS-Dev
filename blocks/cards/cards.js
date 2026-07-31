@@ -3,21 +3,30 @@ import { moveInstrumentation } from '../../scripts/scripts.js';
 
 export default function decorate(block) {
   const ul = document.createElement('ul');
-  [...block.children].forEach((row) => {
+  [...block.children].forEach((row, rowIndex) => {
     const li = document.createElement('li');
 
-    // Field order (by model): 0=image, 1=text, 2=ctalabel, 3=ctalink, 4=ctastyle
-    const ctaLabelDiv = row.children[2];
+    // Field order (by model): 0=layout, 1=image, 2=text, 3=ctalabel, 4=ctalink, 5=ctastyle
+    const layoutDiv = row.children[0];
+    const layout = layoutDiv?.querySelector('p')?.textContent?.trim()
+      || layoutDiv?.textContent?.trim() || 'default';
+
+    // Apply layout class to the block from the first card
+    if (rowIndex === 0 && layout !== 'default') {
+      block.classList.add(layout);
+    }
+
+    const ctaLabelDiv = row.children[3];
     const ctaLabel = ctaLabelDiv?.querySelector('p')?.textContent?.trim()
       || ctaLabelDiv?.textContent?.trim() || '';
 
-    const ctaLinkDiv = row.children[3];
+    const ctaLinkDiv = row.children[4];
     const ctaLinkAnchor = ctaLinkDiv?.querySelector('a');
     const ctaLink = ctaLinkAnchor?.getAttribute('href')
       || ctaLinkDiv?.querySelector('p')?.textContent?.trim()
       || ctaLinkDiv?.textContent?.trim() || '';
 
-    const ctaStyleDiv = row.children[4];
+    const ctaStyleDiv = row.children[5];
     const ctaStyle = ctaStyleDiv?.querySelector('p')?.textContent?.trim()
       || ctaStyleDiv?.textContent?.trim() || 'button';
 
@@ -27,8 +36,12 @@ export default function decorate(block) {
     // Process the li children
     [...li.children].forEach((div, index) => {
       if (index === 0) {
-        div.className = 'cards-card-image';
+        // Hide layout config div
+        div.className = 'cards-config';
+        div.style.display = 'none';
       } else if (index === 1) {
+        div.className = 'cards-card-image';
+      } else if (index === 2) {
         div.className = 'cards-card-body';
       } else {
         // Hide config divs (ctalabel, ctalink, ctastyle)
