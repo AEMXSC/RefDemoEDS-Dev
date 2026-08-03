@@ -7078,5 +7078,52 @@
         "condition": { "==": [{ "var": "enableSubmitAction" }, true] }
       }
     ]
+  },
+  {
+    "id": "flights",
+    "fields": [
+      {
+        "component": "aem-content-fragment",
+        "name": "flightdropdowncontentfragment",
+        "label": "Flight Dropdown Content Fragment",
+        "description": "Select the CF containing the flight dropdown content fragment",
+        "valueType": "string",
+        "validation": {
+          "rootPath": "/content/dam"
+        }
+      },
+      {
+        "component": "aem-content-fragment",
+        "name": "flightlistcontentfragment",
+        "label": "Flight List Content Fragment",
+        "description": "Select the CF containing the flight list content",
+        "valueType": "string",
+        "validation": {
+          "rootPath": "/content/dam"
+        }
+      },
+      {
+        "component": "text",
+        "name": "buttoneventtype",
+        "label": "Button Event Type",
+        "value": "",
+        "valueType": "string"
+      },
+      {
+        "component": "aem-content",
+        "valueType": "string",
+        "name": "checkoutpath",
+        "label": "Checkout Page Path",
+        "description": "Page to redirect to when user clicks Book Now. Defaults to /en/checkout if not set."
+      },
+      {
+        "component": "text",
+        "name": "custom-class",
+        "label": "Custom class",
+        "value": "",
+        "valueType": "string",
+        "description": "Space-separated class names to add to the block"
+      }
+    ]
   }
 ]
