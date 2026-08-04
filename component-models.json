@@ -202,7 +202,7 @@
         "name": "sec-spacing",
         "value": "",
         "label": "Spacing Top (padding top)",
-        "description": "Section top spacing, default is 32px.",
+        "description": "Section top spacing, default is 32px..",
         "valueType": "string",
         "options": [
           {
