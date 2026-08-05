@@ -1,29 +1,33 @@
 import { dispatchCustomEvent } from '../../scripts/custom-events.js';
 import { readBlockConfig } from '../../scripts/aem.js';
-import { normalizeAemPath } from '../../scripts/scripts.js';
+import { isAuthorEnvironment, normalizeAemPath } from '../../scripts/scripts.js';
 import { fetchButtonDataSheet } from '../../scripts/form-data-layer.js';
+import { getLanguage } from '../../scripts/utils.js';
+
 /**
  * Checkout block – consolidates selected flights from the flights block and shows Trip Summary.
- * Selected flights are stored in localStorage (project_selected_flights) when user clicks Select on any flight.
+ * Selected flights are stored in localStorage (project_selected_flights)
+ *  when user clicks Select on any flight.
  * Book Now on the flights block redirects to the checkout page where this block is authored.
  * Confirm Purchase saves booking to sessionStorage and redirects to the confirmation page.
  */
 
 const TRIP_STORAGE_KEY = 'project_selected_flights';
 const BOOKING_STORAGE_KEY = 'project_booking_confirmation';
+const lang = getLanguage();
 
-const LIVE_CONFIRMATION_PATH = '/en/confirmation';
+const LIVE_CONFIRMATION_PATH = `/${lang}/confirmation`;
 
 function getConfirmationPath(authoredPath) {
   if (authoredPath) return normalizeAemPath(authoredPath);
   if (typeof window === 'undefined') return LIVE_CONFIRMATION_PATH;
-  const isAuthor = window.location.hostname.includes('author') || window.location.hostname.includes('adobeaemcloud');
+  const isAuthor = isAuthorEnvironment();
   if (isAuthor) {
-    const pathname = window.location.pathname;
-    const enIndex = pathname.indexOf('/en/');
-    if (enIndex !== -1) return pathname.slice(0, enIndex + 4) + 'confirmation.html';
-    if (pathname.endsWith('/en')) return pathname + '/confirmation.html';
-    return '/en/confirmation.html';
+    const { pathname } = window.location;
+    const enIndex = pathname.indexOf(`/${lang}/`);
+    if (enIndex !== -1) return `${pathname.slice(0, enIndex + 4)}confirmation.html`;
+    if (pathname.endsWith(`/${lang}`)) return `${pathname}/confirmation.html`;
+    return `/${lang}/confirmation.html`;
   }
   return LIVE_CONFIRMATION_PATH;
 }
@@ -117,7 +121,8 @@ function generateItineraryNumber() {
   return s;
 }
 
-/** Generate 10 alphanumeric characters (e.g. "fa8e413cc7") for commerce.order.purchaseOrderNumber and order */
+/** Generate 10 alphanumeric characters (e.g. "fa8e413cc7")
+ * for commerce.order.purchaseOrderNumber and order */
 function generate10AlphaNumeric() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   let s = '';
@@ -377,37 +382,38 @@ function renderTripTotal(sidebar, total, config) {
       };
       try {
         sessionStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(bookingData));
-        // So Launch "Profile - Email from Storage" and Identity Map resolve when Confirm Purchase rule runs
+        // So Launch "Profile - Email from Storage" and Identity
+        // Map resolve when Confirm Purchase rule runs
         if (formData.email) {
-          localStorage.setItem("com.adobe.reactor.dataElements.Profile - Email", formData.email);
-          if (typeof window._satellite !== "undefined" && typeof window._satellite.setVar === "function") {
-            window._satellite.setVar("Profile - Email", formData.email);
+          localStorage.setItem('com.adobe.reactor.dataElements.Profile - Email', formData.email);
+          if (typeof window._satellite !== 'undefined' && typeof window._satellite.setVar === 'function') {
+            window._satellite.setVar('Profile - Email', formData.email);
           }
 
           localStorage.setItem(
-            "com.adobe.reactor.dataElements.Identities",
+            'com.adobe.reactor.dataElements.Identities',
             JSON.stringify({
               Email: [
                 {
                   id: formData.email,
                   primary: true,
-                  authenticatedState: "authenticated",
+                  authenticatedState: 'authenticated',
                 },
               ],
-            })
+            }),
           );
 
           sessionStorage.setItem(
-            "com.adobe.reactor.dataElements.Identity Map",
+            'com.adobe.reactor.dataElements.Identity Map',
             JSON.stringify({
               Email: [
                 {
                   id: formData.email,
                   primary: true,
-                  authenticatedState: "authenticated",
+                  authenticatedState: 'authenticated',
                 },
               ],
-            })
+            }),
           );
         }
       } catch (e) {
@@ -453,7 +459,7 @@ function renderTripTotal(sidebar, total, config) {
         }
         dispatchCustomEvent(config.buttoneventtype);
       }
-      setTimeout(() => { window.location.href = getConfirmationPath(config.confirmationpath) + '?order=' + orderId; }, 2000);
+      setTimeout(() => { window.location.href = `${getConfirmationPath(config.confirmationpath)}?order=${orderId}`; }, 2000);
     };
   }
   sidebar.appendChild(box);
