@@ -261,7 +261,10 @@ const experimentationConfig = {
    */
   function decorateSectionImages(doc) {
     const sectionImgContainers = doc.querySelectorAll('main .section[data-image]');
-    sectionImgContainers.forEach((sectionImgContainer) => {
+    sectionImgContainers.forEach((sectionImgContainer, index) => {
+      // Skip if already decorated (prevents duplicates on re-invocation)
+      if (sectionImgContainer.querySelector('picture.section-bg')) return;
+
       const sectionImg = sectionImgContainer.dataset.image;
       const sectionTabImg = sectionImgContainer.dataset.tabImage;
       const sectionMobImg = sectionImgContainer.dataset.mobImage;
@@ -288,9 +291,10 @@ const experimentationConfig = {
       newImg.src = defaultImgUrl;
       newImg.alt = '';
       newImg.className = 'sec-img';
-      newImg.loading = 'lazy';
+      // Load eagerly if it's the first section (likely above-the-fold)
+      newImg.loading = index === 0 ? 'eager' : 'lazy';
       newImg.width = '768';
-      newImg.height = '100%';
+      newImg.height = '432';
   
       if (defaultImgUrl) {
         newPic.appendChild(newImg);
