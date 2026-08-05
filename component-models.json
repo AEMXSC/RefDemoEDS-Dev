@@ -7094,16 +7094,16 @@
             "value": "default"
           },
           {
-            "name": "Luma",
-            "value": "luma"
+            "name": "Extended Preferences",
+            "value": "extended-preferences"
           },
           {
-            "name": "Frescopa",
-            "value": "frescopa"
+            "name": "Compact Contact",
+            "value": "compact-contact"
           },
           {
-            "name": "WKND Fly",
-            "value": "wknd-fly"
+            "name": "Membership",
+            "value": "membership"
           }
         ]
       },

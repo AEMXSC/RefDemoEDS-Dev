@@ -36,10 +36,10 @@ function clearProductObject() {
 }
 
 function buildCreateAccountFormDef(config = {}) {
-  const isLumaVariant = normalizeVariant(config.variant) === "luma";
-  const isFrescopaVariant = normalizeVariant(config.variant) === "frescopa"
-    || document.body.classList.contains('frescopa-theme');
-  const isWkndFlyVariant = normalizeVariant(config.variant) === "wknd-fly";
+  const isExtendedPreferencesVariant = normalizeVariant(config.variant) === "extended-preferences";
+  const isCompactContactVariant = normalizeVariant(config.variant) === "compact-contact"
+    || document.body.classList.contains('compact-contact-theme');
+  const isMembershipVariant = normalizeVariant(config.variant) === "membership";
   const showLoyaltyProgram = isTruthy(config.showloyaltyprogram);
   const showCommunicationPreferences = config.showcommunicationpreferences !== undefined
     ? isTruthy(config.showcommunicationpreferences)
@@ -86,7 +86,7 @@ function buildCreateAccountFormDef(config = {}) {
             fieldType: "text-input",
             label: { value: "Email address" },
             autoComplete: "email",
-            properties: { colspan: isFrescopaVariant ? 6 : 12 },
+            properties: { colspan: isCompactContactVariant ? 6 : 12 },
           },
           {
             id: "phone",
@@ -94,13 +94,13 @@ function buildCreateAccountFormDef(config = {}) {
             fieldType: "text-input",
             label: { value: "Phone number" },
             autoComplete: "tel",
-            properties: { colspan: isFrescopaVariant ? 6 : 12 },
+            properties: { colspan: isCompactContactVariant ? 6 : 12 },
           },
-          ...(isWkndFlyVariant ? [{
-            id: "wkndFlyMember",
-            name: "wkndFlyMember",
+          ...(isMembershipVariant ? [{
+            id: "membershipMember",
+            name: "membershipMember",
             fieldType: "drop-down",
-            label: { value: "WKND Fly Member" },
+            label: { value: "Membership Status" },
             enum: ["", "member", "non-member"],
             enumNames: ["Select...", "Member", "Non-member"],
             type: "string",
@@ -222,7 +222,7 @@ function buildCreateAccountFormDef(config = {}) {
             id: "heading-know-you-better",
             fieldType: "heading",
             label: { value: "LET US KNOW YOU BETTER" },
-            appliedCssClassNames: withConditionalClasses("col-12 know-you-better-heading", isLumaVariant),
+            appliedCssClassNames: withConditionalClasses("col-12 know-you-better-heading", isExtendedPreferencesVariant),
           },
           {
             id: "shoeSize",
@@ -231,7 +231,7 @@ function buildCreateAccountFormDef(config = {}) {
             label: { value: "Shoe size" },
             enum: shoeSizes,
             enumNames: ["Select...", ...shoeSizes.slice(1)],
-            appliedCssClassNames: withConditionalClasses("col-6 luma-preference-field", isLumaVariant),
+            appliedCssClassNames: withConditionalClasses("col-6 extended-preference-field", isExtendedPreferencesVariant),
             properties: { colspan: 6 },
           },
           {
@@ -241,7 +241,7 @@ function buildCreateAccountFormDef(config = {}) {
             label: { value: "Shirt size" },
             enum: shirtSizes,
             enumNames: ["Select...", "S", "M", "L", "XL", "XXL"],
-            appliedCssClassNames: withConditionalClasses("col-6 luma-preference-field", isLumaVariant),
+            appliedCssClassNames: withConditionalClasses("col-6 extended-preference-field", isExtendedPreferencesVariant),
             properties: { colspan: 6 },
           },
           {
@@ -251,20 +251,20 @@ function buildCreateAccountFormDef(config = {}) {
             label: { value: "Favorite color" },
             enum: favoriteColors,
             enumNames: ["Select...", "Black", "Blue", "Green", "Orange", "Pink", "Purple", "Red", "White", "Yellow"],
-            appliedCssClassNames: withConditionalClasses("col-12 luma-preference-field", isLumaVariant),
+            appliedCssClassNames: withConditionalClasses("col-12 extended-preference-field", isExtendedPreferencesVariant),
             properties: { colspan: 12 },
           },
-          ...(isFrescopaVariant ? [{
-            id: "frescopaOwner",
-            name: "frescopaOwner",
+          ...(isCompactContactVariant ? [{
+            id: "compactContactOwner",
+            name: "compactContactOwner",
             fieldType: "drop-down",
-            label: { value: "Do you already have a Frescopa machine?" },
-            placeholder: "Do you already have a Frescopa machine?",
+            label: { value: "Do you already own one of our machines?" },
+            placeholder: "Do you already own one of our machines?",
             enum: ["yes", "no"],
             enumNames: ["Yes", "No"],
             type: "string",
             properties: { colspan: 12 },
-            appliedCssClassNames: "frescopa-machine-field",
+            appliedCssClassNames: "compact-contact-machine-field",
           }] : []),
           {
             id: "submit-btn",
@@ -322,7 +322,7 @@ function attachCreateAccountSubmitHandler(block, config) {
   if (!form) return;
 
   const redirectUrl = config.redirecturl;
-  const isWkndFlyVariant = normalizeVariant(config.variant) === "wknd-fly";
+  const isMembershipVariant = normalizeVariant(config.variant) === "membership";
 
   form.addEventListener(
     "submit",
@@ -409,11 +409,11 @@ function attachCreateAccountSubmitHandler(block, config) {
           window.dataLayer.createAccountConsent = true;
         }
 
-        if (isWkndFlyVariant && typeof window.updateDataLayer === "function") {
-          const isMember = (formData.wkndFlyMember || "").toLowerCase() === "member" ? "y" : "n";
+        if (isMembershipVariant && typeof window.updateDataLayer === "function") {
+          const isMember = (formData.membershipMember || "").toLowerCase() === "member" ? "y" : "n";
           window.updateDataLayer({
             person: {
-              wkndFlyMember: formData.wkndFlyMember || "",
+              membershipMember: formData.membershipMember || "",
               isMember: isMember === "y",
             },
             _demosystem4: {
