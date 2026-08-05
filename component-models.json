@@ -377,7 +377,8 @@
             "options": [
               { "name": "Fill (recommended, crops to fit)", "value": "fill" },
               { "name": "Contain (full image, may have gaps)", "value": "contain" },
-              { "name": "Stretch (fills exactly, may distort)", "value": "stretch" }
+              { "name": "Stretch (fills exactly, may distort)", "value": "stretch" },
+              { "name": "Original (natural size, no scaling)", "value": "original" }
             ]
           },
           {

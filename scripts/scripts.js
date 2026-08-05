@@ -264,6 +264,7 @@ const experimentationConfig = {
       fill: 'fit-cover',
       contain: 'fit-contain',
       stretch: 'fit-fill',
+      original: 'fit-none',
     };
 
     const sectionImgContainers = doc.querySelectorAll('main .section[data-image]');
