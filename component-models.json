@@ -366,6 +366,37 @@
             "name": "image",
             "label": "Background Image",
             "multi": false
+          },
+          {
+            "component": "select",
+            "valueType": "string",
+            "name": "imageFit",
+            "label": "Image Fit",
+            "description": "How the background image fills the section area.",
+            "value": "fill",
+            "options": [
+              { "name": "Fill (cover, crops overflow)", "value": "fill" },
+              { "name": "Fit (contain, may letterbox)", "value": "fit" },
+              { "name": "Fit Width (height may crop)", "value": "fit-width" },
+              { "name": "Fit Height (width may crop)", "value": "fit-height" },
+              { "name": "Stretch (distorts to fill)", "value": "stretch" },
+              { "name": "Original (natural size)", "value": "original" }
+            ]
+          },
+          {
+            "component": "select",
+            "valueType": "string",
+            "name": "imagePosition",
+            "label": "Focal Point",
+            "description": "Which part of the image stays visible when cropped.",
+            "value": "center",
+            "options": [
+              { "name": "Center", "value": "center" },
+              { "name": "Top", "value": "top" },
+              { "name": "Bottom", "value": "bottom" },
+              { "name": "Left", "value": "left" },
+              { "name": "Right", "value": "right" }
+            ]
           }
         ]
       },

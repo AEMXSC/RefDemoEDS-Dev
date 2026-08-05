@@ -260,6 +260,15 @@ const experimentationConfig = {
    * @param {*} doc
    */
   function decorateSectionImages(doc) {
+    const FITS = {
+      fill: 'fit-cover',
+      fit: 'fit-contain',
+      'fit-width': 'fit-w',
+      'fit-height': 'fit-h',
+      stretch: 'fit-fill',
+      original: 'fit-none',
+    };
+
     const sectionImgContainers = doc.querySelectorAll('main .section[data-image]');
     sectionImgContainers.forEach((sectionImgContainer, index) => {
       // Skip if already decorated (prevents duplicates on re-invocation)
@@ -268,10 +277,18 @@ const experimentationConfig = {
       const sectionImg = sectionImgContainer.dataset.image;
       // const sectionTabImg = sectionImgContainer.dataset.tabImage;
       // const sectionMobImg = sectionImgContainer.dataset.mobImage;
+      const imageFit = sectionImgContainer.dataset.imagefit || 'fill';
+      const imagePosition = sectionImgContainer.dataset.imageposition || 'center';
       let defaultImgUrl = null;
   
       const newPic = document.createElement('picture');
       newPic.className = 'section-bg';
+
+      // Apply fit mode and focal point classes
+      const fitClass = FITS[imageFit] || 'fit-cover';
+      newPic.classList.add(fitClass);
+      newPic.classList.add(`pos-${imagePosition}`);
+
       if (sectionImg) {
         newPic.appendChild(createSource(sectionImg, 1920, '(min-width: 1024px)'));
         defaultImgUrl = sectionImg;

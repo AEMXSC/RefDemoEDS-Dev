@@ -854,6 +854,22 @@ main .section > picture.section-bg img.sec-img {
   height: 100%;
   object-fit: cover;
 }
+
+/* Fit modes */
+main .section > picture.section-bg.fit-cover img.sec-img { object-fit: cover; }
+main .section > picture.section-bg.fit-contain img.sec-img { object-fit: contain; }
+main .section > picture.section-bg.fit-fill img.sec-img { object-fit: fill; }
+main .section > picture.section-bg.fit-none img.sec-img { object-fit: none; }
+main .section > picture.section-bg.fit-w img.sec-img { width: 100%; height: auto; object-fit: none; }
+main .section > picture.section-bg.fit-h img.sec-img { width: auto; height: 100%; object-fit: none; }
+
+/* Focal point / object-position */
+main .section > picture.section-bg.pos-center img.sec-img { object-position: center; }
+main .section > picture.section-bg.pos-top img.sec-img { object-position: top; }
+main .section > picture.section-bg.pos-bottom img.sec-img { object-position: bottom; }
+main .section > picture.section-bg.pos-left img.sec-img { object-position: left; }
+main .section > picture.section-bg.pos-right img.sec-img { object-position: right; }
+
 main .section.section-has-bg > div {
   position: relative;
   z-index: 1;
