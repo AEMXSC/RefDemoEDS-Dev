@@ -266,8 +266,8 @@ const experimentationConfig = {
       if (sectionImgContainer.querySelector('picture.section-bg')) return;
 
       const sectionImg = sectionImgContainer.dataset.image;
-      const sectionTabImg = sectionImgContainer.dataset.tabImage;
-      const sectionMobImg = sectionImgContainer.dataset.mobImage;
+      // const sectionTabImg = sectionImgContainer.dataset.tabImage;
+      // const sectionMobImg = sectionImgContainer.dataset.mobImage;
       let defaultImgUrl = null;
   
       const newPic = document.createElement('picture');
@@ -277,15 +277,15 @@ const experimentationConfig = {
         defaultImgUrl = sectionImg;
       }
   
-      if (sectionTabImg) {
-        newPic.appendChild(createSource(sectionTabImg, 1024, '(min-width: 768px)'));
-        defaultImgUrl = sectionTabImg;
-      }
+      // if (sectionTabImg) {
+      //   newPic.appendChild(createSource(sectionTabImg, 1024, '(min-width: 768px)'));
+      //   defaultImgUrl = sectionTabImg;
+      // }
   
-      if (sectionMobImg) {
-        newPic.appendChild(createSource(sectionMobImg, 600, '(max-width: 767px)'));
-        defaultImgUrl = sectionMobImg;
-      }
+      // if (sectionMobImg) {
+      //   newPic.appendChild(createSource(sectionMobImg, 600, '(max-width: 767px)'));
+      //   defaultImgUrl = sectionMobImg;
+      // }
   
       const newImg = document.createElement('img');
       newImg.src = defaultImgUrl;
