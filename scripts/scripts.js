@@ -262,11 +262,8 @@ const experimentationConfig = {
   function decorateSectionImages(doc) {
     const FITS = {
       fill: 'fit-cover',
-      fit: 'fit-contain',
-      'fit-width': 'fit-w',
-      'fit-height': 'fit-h',
+      contain: 'fit-contain',
       stretch: 'fit-fill',
-      original: 'fit-none',
     };
 
     const sectionImgContainers = doc.querySelectorAll('main .section[data-image]');

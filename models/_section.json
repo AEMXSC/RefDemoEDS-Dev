@@ -125,12 +125,9 @@
               "description": "How the background image fills the section area.",
               "value": "fill",
               "options": [
-                { "name": "Fill (cover, crops overflow)", "value": "fill" },
-                { "name": "Fit (contain, may letterbox)", "value": "fit" },
-                { "name": "Fit Width (height may crop)", "value": "fit-width" },
-                { "name": "Fit Height (width may crop)", "value": "fit-height" },
-                { "name": "Stretch (distorts to fill)", "value": "stretch" },
-                { "name": "Original (natural size)", "value": "original" }
+                { "name": "Fill (recommended, crops to fit)", "value": "fill" },
+                { "name": "Contain (full image, may have gaps)", "value": "contain" },
+                { "name": "Stretch (fills exactly, may distort)", "value": "stretch" }
               ]
             },
             {
