@@ -4,17 +4,17 @@ import { readBlockConfig } from '../../scripts/aem.js';
 import { dispatchCustomEvent } from '../../scripts/custom-events.js';
 import { getEnvironmentValue, getHostname, resolveImageUrl } from '../../scripts/utils.js';
 
-const AUTHOR_GRAPHQL_BASE_For_Search = '/graphql/execute.json/wknd-fly/flight-details-list-with-path';
-const PUBLISH_GRAPHQL_BASE_For_Search = 'https://275323-918sangriatortoise.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-details-list';
+const AUTHOR_GRAPHQL_BASE_For_Search = '/graphql/execute.json/wkndfly-template/flight-details-list-with-path';
+const PUBLISH_GRAPHQL_BASE_For_Search = 'https://675172-referencedemopartner-stage.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-details-list';
 
-const AUTHOR_GRAPHQL_BASE_For_Destination = '/graphql/execute.json/wknd-fly/flight-details-list-for-destination-page-with-path';
-const PUBLISH_GRAPHQL_BASE_For_Destination = 'https://275323-918sangriatortoise.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-details-list';
+const AUTHOR_GRAPHQL_BASE_For_Destination = '/graphql/execute.json/wkndfly-template/flight-details-list-for-destination-page-with-path';
+const PUBLISH_GRAPHQL_BASE_For_Destination = 'https://675172-referencedemopartner-stage.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-details-list';
 
-const AUTHOR_GRAPHQL_BASE_For_Dropdown = '/graphql/execute.json/wknd-fly/flight-source-dropdown';
-const PUBLISH_GRAPHQL_BASE_For_Dropdown = 'https://275323-918sangriatortoise.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-source-dropdown';
-const DEFAULT_FLIGHT_LIST_CONTENT_FRAGMENT_PATH = '/content/dam/wknd-fly/en/fragments/flight-details';
+const AUTHOR_GRAPHQL_BASE_For_Dropdown = '/graphql/execute.json/wkndfly-template/flight-source-dropdown';
+const PUBLISH_GRAPHQL_BASE_For_Dropdown = 'https://675172-referencedemopartner-stage.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-source-dropdown';
+const DEFAULT_FLIGHT_LIST_CONTENT_FRAGMENT_PATH = '/content/dam/wkndfly-template/en/fragments/flight-details';
 
-let selectButtonDataAttributes = {};
+const selectButtonDataAttributes = {};
 let flightListPathForGraphQL = DEFAULT_FLIGHT_LIST_CONTENT_FRAGMENT_PATH;
 let flightApiConfigPromise;
 
@@ -161,8 +161,7 @@ function mapGraphQLItemToFlight(item, isAuthor) {
   const price = Number(item?.flightPrice ?? item?.price) || 0;
   const departureTime = item?.departureTime ?? '';
   const arrivalTime = item?.arrivalTime ?? '';
-  const flightLength =
-    item?.flightLength ?? item?.length ?? calculateFlightLengthFromTimes(departureTime, arrivalTime);
+  const flightLength = item?.flightLength ?? item?.length ?? calculateFlightLengthFromTimes(departureTime, arrivalTime);
   return {
     id,
     sku: item?.sku?.trim() || id,
@@ -195,11 +194,10 @@ async function fetchFlightsFromGraphQL(from, to) {
     if (!response.ok) return [];
     const payload = await response.json();
     if (payload?.errors?.length) return [];
-    const items =
-      payload?.data?.flightDetailsList?.items ||
-      payload?.data?.flight_details_List?.items ||
-      payload?.data?.flightDetails_List?.items ||
-      [];
+    const items = payload?.data?.flightDetailsList?.items
+      || payload?.data?.flight_details_List?.items
+      || payload?.data?.flightDetails_List?.items
+      || [];
     return items.map((it) => mapGraphQLItemToFlight(it, isAuthor));
   } catch (e) {
     console.warn('Flights GraphQL fetch failed:', e);
@@ -224,11 +222,10 @@ async function fetchFlightsForDestination(destination) {
     if (!response.ok) return [];
     const payload = await response.json();
     if (payload?.errors?.length) return [];
-    const items =
-      payload?.data?.flightDetailsListForDestinationPage?.items ||
-      payload?.data?.flight_details_list_for_destination_page?.items ||
-      payload?.data?.flightDetailsList?.items ||
-      [];
+    const items = payload?.data?.flightDetailsListForDestinationPage?.items
+      || payload?.data?.flight_details_list_for_destination_page?.items
+      || payload?.data?.flightDetailsList?.items
+      || [];
     return items.map((it) => mapGraphQLItemToFlight(it, isAuthor));
   } catch (e) {
     console.warn('Destination flights GraphQL fetch failed:', e);
@@ -316,10 +313,10 @@ async function fetchAirportsFromGraphQL(contentFragmentPath) {
     const airports = extractAirportsFromDropdownPayload(payload);
     const seenCodes = new Set();
     return airports.filter((airport) => {
-        if (!airport || seenCodes.has(airport.code)) return false;
-        seenCodes.add(airport.code);
-        return true;
-      });
+      if (!airport || seenCodes.has(airport.code)) return false;
+      seenCodes.add(airport.code);
+      return true;
+    });
   } catch (e) {
     console.warn('Airport dropdown GraphQL fetch failed:', e);
     return [];
@@ -330,10 +327,10 @@ const LIVE_CHECKOUT_PATH = '/en/checkout';
 let configuredCheckoutPath = null;
 
 function getAuthorCheckoutPath() {
-  const pathname = window.location.pathname;
+  const { pathname } = window.location;
   const enIndex = pathname.indexOf('/en/');
-  if (enIndex !== -1) return pathname.slice(0, enIndex + 4) + 'checkout.html';
-  if (pathname.endsWith('/en')) return pathname + '/checkout.html';
+  if (enIndex !== -1) return `${pathname.slice(0, enIndex + 4)}checkout.html`;
+  if (pathname.endsWith('/en')) return `${pathname}/checkout.html`;
   return '/en/checkout.html';
 }
 
@@ -414,16 +411,16 @@ function formatDate(date) {
     d = new Date(date);
   } else if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
     // YYYY-MM-DD format
-    d = new Date(date + 'T00:00:00');
+    d = new Date(`${date}T00:00:00`);
   } else {
     d = new Date(date);
   }
-  
+
   // Check if date is valid
   if (isNaN(d.getTime())) {
     return '';
   }
-  
+
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const year = d.getFullYear();
@@ -437,18 +434,18 @@ function displayFlightResults(flights, from, to, date) {
     console.error('Flights block not found!');
     return;
   }
-  
+
   console.log('Displaying flights:', flights.length, flights);
-  
+
   // Clear existing content but preserve hidden config divs
-  const hiddenDivs = Array.from(block.children).filter(child => child.style.display === 'none');
+  const hiddenDivs = Array.from(block.children).filter((child) => child.style.display === 'none');
   block.innerHTML = '';
   // Re-append hidden divs for Universal Editor
-  hiddenDivs.forEach(div => {
+  hiddenDivs.forEach((div) => {
     div.style.display = 'none';
     block.appendChild(div);
   });
-  
+
   if (flights.length === 0) {
     const noResults = createElement('div', 'flight-no-results');
     const msg = from
@@ -477,7 +474,7 @@ function displayFlightResults(flights, from, to, date) {
   const disclaimer = createElement('p', 'flight-results-disclaimer');
   disclaimer.textContent = 'Presented fares are per passenger, including fees and taxes. Additional services and amenities may vary per flight or change in time.';
   block.appendChild(disclaimer);
-  
+
   const resultsList = createElement('div', 'flight-results-list');
   const dateForDataLayer = date != null ? (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date) ? date.slice(0, 10) : (() => { try { const d = new Date(date); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10); } catch (e) { return ''; } })()) : '';
   flights.forEach((flight) => {
@@ -489,53 +486,53 @@ function displayFlightResults(flights, from, to, date) {
     image.src = flight.image || '';
     image.alt = `${flight.toName} destination`;
     imageContainer.appendChild(image);
-    
+
     const detailsContainer = createElement('div', 'flight-card-details');
-    
+
     const route = createElement('div', 'flight-route');
     route.textContent = `${flight.fromName} (${flight.from}) to ${flight.toName} (${flight.to})`;
-    
+
     const codesLine = createElement('div', 'flight-codes-line');
     codesLine.innerHTML = `
       <span class="flight-airport">${flight.from}</span>
       <span class="flight-codes-connector" aria-hidden="true"></span>
       <span class="flight-airport">${flight.to}</span>
     `;
-    
+
     const timesRow = createElement('div', 'flight-times-row');
     timesRow.innerHTML = `
       <span class="flight-time-value">${flight.departureTime}</span>
       <span class="flight-time-separator" aria-hidden="true">—</span>
       <span class="flight-time-value">${flight.arrivalTime}</span>
     `;
-    
+
     detailsContainer.appendChild(route);
     detailsContainer.appendChild(codesLine);
     detailsContainer.appendChild(timesRow);
-    
+
     const priceContainer = createElement('div', 'flight-card-price');
     const priceClass = createElement('div', 'flight-class');
     priceClass.textContent = flight.class;
-    
+
     const price = createElement('div', 'flight-price');
     price.textContent = `$${flight.price.toFixed(2)}`;
-    
+
     const selectButton = createElement('button', 'flight-select-button', 'Select');
     selectButton.addEventListener('click', () => {
       handleFlightSelect(flightWithDate);
     });
-    
+
     priceContainer.appendChild(priceClass);
     priceContainer.appendChild(price);
     priceContainer.appendChild(selectButton);
-    
+
     flightCard.appendChild(imageContainer);
     flightCard.appendChild(detailsContainer);
     flightCard.appendChild(priceContainer);
-    
+
     resultsList.appendChild(flightCard);
   });
-  
+
   block.appendChild(resultsList);
 }
 
@@ -636,17 +633,17 @@ export default async function decorate(block) {
   const config = readBlockConfig(block) || {};
   const isAuthor = isAuthorEnvironment();
 
-  configuredCheckoutPath = config.checkoutpath || config['checkoutpath'] || null;
+  configuredCheckoutPath = config.checkoutpath || config.checkoutpath || null;
 
   let flightDropdownContentFragmentPath = null;
-  if(config.flightdropdowncontentfragment || config['flightdropdowncontentfragment']) {
-    flightDropdownContentFragmentPath = config.flightdropdowncontentfragment ?? config['flightdropdowncontentfragment'];
+  if (config.flightdropdowncontentfragment || config.flightdropdowncontentfragment) {
+    flightDropdownContentFragmentPath = config.flightdropdowncontentfragment ?? config.flightdropdowncontentfragment;
     flightDropdownContentFragmentPath = normalizeContentFragmentPath(flightDropdownContentFragmentPath, isAuthor);
   }
 
   let flightListContentFragmentPath = null;
-  if(config.flightlistcontentfragment || config['flightlistcontentfragment']) {
-    flightListContentFragmentPath = config.flightlistcontentfragment ?? config['flightlistcontentfragment'];
+  if (config.flightlistcontentfragment || config.flightlistcontentfragment) {
+    flightListContentFragmentPath = config.flightlistcontentfragment ?? config.flightlistcontentfragment;
     flightListContentFragmentPath = normalizeContentFragmentPath(flightListContentFragmentPath, isAuthor);
   }
   flightListPathForGraphQL = flightListContentFragmentPath || DEFAULT_FLIGHT_LIST_CONTENT_FRAGMENT_PATH;
@@ -663,8 +660,7 @@ export default async function decorate(block) {
   }
 
   // Apply button config as data attributes for analytics/webhooks
-  if (config.buttoneventtype && String(config.buttoneventtype).trim()) 
-    selectButtonDataAttributes.buttonEventType = String(config.buttoneventtype).trim();
+  if (config.buttoneventtype && String(config.buttoneventtype).trim()) { selectButtonDataAttributes.buttonEventType = String(config.buttoneventtype).trim(); }
 
   const urlParams = new URLSearchParams(window.location.search);
   const urlDate = urlParams.get('date');
@@ -679,9 +675,7 @@ export default async function decorate(block) {
     let flights = [];
     if (destinationCodes?.length) {
       const allResults = await Promise.all(
-        destinationCodes.map((code) =>
-          fetchFlightsForDestination(code).catch(() => []),
-        ),
+        destinationCodes.map((code) => fetchFlightsForDestination(code).catch(() => [])),
       );
       const seen = new Set();
       flights = allResults.flat().filter((f) => {
@@ -716,9 +710,7 @@ export default async function decorate(block) {
     if (selectedFromUrl.length > 0) {
       updateDataLayerWithSelectedFlights(selectedFromUrl[selectedFromUrl.length - 1]);
     }
-    return;
   }
 
   // No from/to resolved and not destination page — nothing to show
-  return;
 }
