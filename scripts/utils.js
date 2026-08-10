@@ -476,3 +476,76 @@ export function dynamicMediaAssetProcess(pictureElement, qParam) {
     });
   }
 }
+/**
+ * Resolves an image URL from a Content Fragment image field.
+ * Handles:
+ *   - Plain string URLs (passthrough)
+ *   - RemoteRef (connected Assets / Polaris DAM) → DM delivery URL
+ *   - ImageRef (local AEM DAM) → _dynamicUrl / _publishUrl / _authorUrl
+ *   - Open API responses (no __typename, field-presence fallback)
+ *
+ * @param {string|object} imageField - The image field from CF response
+ * @param {boolean} [isAuthorEnv] - Whether running on author environment
+ * @returns {string} Resolved image URL or empty string
+ */
+export function resolveImageUrl(imageField, isAuthorEnv = false) {
+  if (!imageField) return '';
+  if (typeof imageField === 'string') return imageField;
+
+  // eslint-disable-next-line no-underscore-dangle
+  const typename = imageField.__typename;
+
+  // Primary: __typename-based routing (GraphQL responses)
+  switch (typename) {
+    case 'RemoteRef': {
+      const repositoryId = (imageField.repositoryId || '').trim();
+      const assetId = (imageField.assetId || '').trim();
+      const fileName = 'remoteRefAsset.png';
+
+      if (!repositoryId || !assetId || !fileName) return '';
+
+      const host = repositoryId.startsWith('http://') || repositoryId.startsWith('https://')
+        ? repositoryId.replace(/\/$/, '')
+        : `https://${repositoryId}`;
+
+      return `${host}/adobe/dynamicmedia/deliver/${assetId}/${fileName}`;
+    }
+    case 'ImageRef': {
+      if (isAuthorEnv) {
+        // eslint-disable-next-line no-underscore-dangle
+        return imageField._authorUrl || imageField._publishUrl || imageField._dynamicUrl || '';
+      }
+      // eslint-disable-next-line no-underscore-dangle
+      return imageField._dynamicUrl || imageField._publishUrl || imageField._authorUrl || '';
+    }
+    default:
+      break;
+  }
+
+  // Fallback: field-presence detection (Open API / legacy responses without __typename)
+  if (imageField.repositoryId && imageField.assetId) {
+    const repositoryId = (imageField.repositoryId || '').trim();
+    const assetId = (imageField.assetId || '').trim();
+    const fileName = 'asset.png';
+
+    if (!repositoryId || !assetId || !fileName) return '';
+
+    const host = repositoryId.startsWith('http://') || repositoryId.startsWith('https://')
+      ? repositoryId.replace(/\/$/, '')
+      : `https://${repositoryId}`;
+
+    return `${host}/adobe/dynamicmedia/deliver/${assetId}/${fileName}`;
+  }
+
+  // eslint-disable-next-line no-underscore-dangle
+  if (imageField._dynamicUrl || imageField._publishUrl || imageField._authorUrl) {
+    if (isAuthorEnv) {
+      // eslint-disable-next-line no-underscore-dangle
+      return imageField._authorUrl || imageField._publishUrl || imageField._dynamicUrl || '';
+    }
+    // eslint-disable-next-line no-underscore-dangle
+    return imageField._dynamicUrl || imageField._publishUrl || imageField._authorUrl || '';
+  }
+
+  return '';
+}
