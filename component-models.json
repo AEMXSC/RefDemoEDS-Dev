@@ -343,7 +343,59 @@
           {
             "name": "Light Color",
             "value": "bg-light"
-          }         
+          },
+          {
+            "name": "Background Image",
+            "value": "bg-image"
+          }
+        ]
+      },
+      {
+        "component": "container",
+        "label": "Background Image",
+        "name": "container",
+        "valueType": "string",
+        "collapsible": true,
+        "condition": {
+          "==": [{ "var": "style" }, "bg-image"]
+        },
+        "fields": [
+          {
+            "component": "reference",
+            "valueType": "string",
+            "name": "image",
+            "label": "Background Image",
+            "multi": false
+          },
+          {
+            "component": "select",
+            "valueType": "string",
+            "name": "imageFit",
+            "label": "Image Fit",
+            "description": "How the background image fills the section area.",
+            "value": "fill",
+            "options": [
+              { "name": "Fill (recommended, crops to fit)", "value": "fill" },
+              { "name": "Contain (full image, may have gaps)", "value": "contain" },
+              { "name": "Stretch (fills exactly, may distort)", "value": "stretch" },
+              { "name": "Original (natural size, no scaling)", "value": "original" }
+            ]
+          },
+          {
+            "component": "select",
+            "valueType": "string",
+            "name": "imagePosition",
+            "label": "Focal Point",
+            "description": "Which part of the image stays visible when cropped.",
+            "value": "center",
+            "options": [
+              { "name": "Center", "value": "center" },
+              { "name": "Top", "value": "top" },
+              { "name": "Bottom", "value": "bottom" },
+              { "name": "Left", "value": "left" },
+              { "name": "Right", "value": "right" }
+            ]
+          }
         ]
       },
       {
