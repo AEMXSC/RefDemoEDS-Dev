@@ -5,15 +5,17 @@
  * Button config (event type, webhook, form id, data) is authorable; custom event fired on success for Launch.
  */
 
-import { readBlockConfig } from "../../scripts/aem.js";
-import { dispatchCustomEvent } from "../../scripts/custom-events.js";
-import { syncFormDataLayer, DEFAULT_FORM_FIELD_MAP, attachLiveFormSync, submitToWebhook, fetchButtonDataSheet } from "../../scripts/form-data-layer.js";
+import { readBlockConfig } from '../../scripts/aem.js';
+import { dispatchCustomEvent } from '../../scripts/custom-events.js';
+import {
+  syncFormDataLayer, DEFAULT_FORM_FIELD_MAP, attachLiveFormSync, submitToWebhook, fetchButtonDataSheet,
+} from '../../scripts/form-data-layer.js';
 
-const DEFAULT_FORM_TITLE = 'JOIN WKND FLY CLUB';
-const DEFAULT_SUCCESS_TOAST_MESSAGE = 'Thank you for joining WKND Fly Club. Check your email, new exciting travels are ahead of you!';
+const DEFAULT_FORM_TITLE = 'JOIN US';
+const DEFAULT_SUCCESS_TOAST_MESSAGE = 'Thank you for joining us. Check your email, new exciting travels are ahead of you!';
 
 function normalizeVariant(value) {
-  return String(value || "default").trim().toLowerCase();
+  return String(value || 'default').trim().toLowerCase();
 }
 
 function isTruthy(value) {
@@ -186,22 +188,22 @@ export default async function decorate(block) {
           },
           ...(!hideCheckbox
             ? [
-                {
-                  id: 'consent',
-                  name: 'consent',
-                  fieldType: 'checkbox',
-                  label: {
-                    value: 'I want to join WKND Fly Club and I have read and understand the Privacy and Cookies Policy. I want to receive personalized communication by email.',
-                  },
-                  enum: ['true'],
-                  type: 'string',
-                  properties: {
-                    variant: 'switch',
-                    alignment: 'horizontal',
-                    colspan: 12,
-                  },
+              {
+                id: 'consent',
+                name: 'consent',
+                fieldType: 'checkbox',
+                label: {
+                  value: 'I want to join and I have read and understand the Privacy and Cookies Policy. I want to receive personalized communication by email.',
                 },
-              ]
+                enum: ['true'],
+                type: 'string',
+                properties: {
+                  variant: 'switch',
+                  alignment: 'horizontal',
+                  colspan: 12,
+                },
+              },
+            ]
             : []),
           {
             id: 'join-us-btn',
@@ -277,9 +279,9 @@ function attachFormSubmitHandler(block, formActionId = '', successToastMessage =
       // So Launch "Profile - Email from Storage" and Identity Map resolve when Registration rule runs
       if (email) {
         try {
-          localStorage.setItem("com.adobe.reactor.dataElements.Profile - Email", email);
-          if (typeof window._satellite !== "undefined" && typeof window._satellite.setVar === "function") {
-            window._satellite.setVar("Profile - Email", email);
+          localStorage.setItem('com.adobe.reactor.dataElements.Profile - Email', email);
+          if (typeof window._satellite !== 'undefined' && typeof window._satellite.setVar === 'function') {
+            window._satellite.setVar('Profile - Email', email);
           }
         } catch (e) {
           // ignore storage/setVar errors
@@ -319,6 +321,6 @@ function attachFormSubmitHandler(block, formActionId = '', successToastMessage =
       const webhookUrl = submitBtn?.dataset?.buttonWebhookUrl?.trim();
       const formId = submitBtn?.dataset?.buttonFormId?.trim();
       if (webhookUrl) await submitToWebhook(form, webhookUrl, formId);
-    }
+    },
   );
 }

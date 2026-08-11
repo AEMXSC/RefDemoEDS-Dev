@@ -25,14 +25,14 @@
           "component": "text",
           "name": "form-title",
           "label": "Form Title",
-          "value": "JOIN WKND FLY CLUB",
+          "value": "JOIN US",
           "valueType": "string"
         },
         {
           "component": "text",
           "name": "success-message",
           "label": "Success Message",
-          "value": "Thank you for joining WKND Fly Club. Check your email, new exciting travels are ahead of you!",
+          "value": "Thank you for joining Us. Check your email, new exciting travels are ahead of you!",
           "valueType": "string"
         },
         {
