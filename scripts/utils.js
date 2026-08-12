@@ -78,6 +78,39 @@ export async function getHostname() {
   }
 }
 
+function extractEnvironmentFromHostname(hostnameValue) {
+  if (!hostnameValue || typeof hostnameValue !== 'string') return undefined;
+  const trimmed = hostnameValue.trim();
+  if (!trimmed) return undefined;
+  try {
+    const hostname = /^https?:\/\//i.test(trimmed)
+      ? new URL(trimmed).hostname
+      : trimmed;
+    const envMatch = hostname.match(/(p\d+-e\d+)/i);
+    return envMatch ? envMatch[1] : undefined;
+  } catch (error) {
+    const envMatch = trimmed.match(/(p\d+-e\d+)/i);
+    return envMatch ? envMatch[1] : undefined;
+  }
+}
+
+/**
+ * Fetch environment identifier from placeholders.
+ * @returns {string|undefined} Environment id (for example: p12345-e67890)
+ */
+export async function getEnvironmentValue() {
+  try {
+    const hostnameFromPlaceholders = await getHostname();
+    const envFromHostname = extractEnvironmentFromHostname(hostnameFromPlaceholders);
+    if (envFromHostname) return envFromHostname;
+
+    return extractEnvironmentFromHostname(window?.location?.hostname);
+  } catch (error) {
+    console.warn('Error fetching placeholders for environment:', error);
+    return undefined;
+  }
+}
+
 /**
  * Fetch the dynamic media server name from placeholder
  * @description Fetches the dynamic media server URL from placeholder.
