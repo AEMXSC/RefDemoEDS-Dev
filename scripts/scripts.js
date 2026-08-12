@@ -252,6 +252,9 @@ const experimentationConfig = {
   async function loadEager(doc) {
 		setPageLanguage();
 		decorateTemplateAndTheme();
+		if (getMetadata('staticheader').toLowerCase() === 'true') {
+		  doc.querySelector('header')?.classList.add('static-header');
+		}
 		await runExperimentation(doc, experimentationConfig);
 		renderWBDataLayer();
 		const main = doc.querySelector('main');
