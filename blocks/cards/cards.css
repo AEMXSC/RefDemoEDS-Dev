@@ -458,3 +458,141 @@
   }
   
 }
+
+
+/* Articles Layout */
+.cards.articles > ul {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  padding: 0;
+}
+
+.cards.articles > ul > li {
+  background: #fff;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.cards.articles > ul > li .cards-card-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.cards.articles > ul > li .cards-card-image picture {
+  display: block;
+  width: 100%;
+}
+
+.cards.articles > ul > li img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  max-height: none;
+  min-height: auto;
+}
+
+.cards.articles > ul > li .cards-card-body {
+  padding: 20px 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.cards.articles > ul > li .cards-card-body h1 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.cards.articles > ul > li .cards-card-body h2 {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.cards.articles > ul > li .cards-card-body h3 {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.cards.articles > ul > li .cards-card-body h4 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.cards.articles > ul > li .cards-card-body h5 {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.cards.articles > ul > li .cards-card-body h6 {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.cards.articles > ul > li .cards-card-body p {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+  margin: 0 0 10px;
+}
+
+.cards.articles > ul > li .cards-card-body p.button-container {
+  margin-top: auto;
+  text-align: right;
+}
+
+.cards.articles > ul > li .cards-card-body p.button-container a.button {
+  background: transparent;
+  color: #333;
+  border: 2px solid #333;
+  border-radius: 0;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 400;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.cards.articles > ul > li .cards-card-body p.button-container a.button::after {
+  content: "\2192";
+  font-size: 16px;
+}
+
+.cards.articles > ul > li .cards-card-body p.button-container a.button:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+@media (width < 1024px) {
+  .cards.articles > ul {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (width < 768px) {
+  .cards.articles > ul {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
