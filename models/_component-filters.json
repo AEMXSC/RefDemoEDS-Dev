@@ -39,7 +39,8 @@
       "create-account",
       "fragment-list",
       "flights",
-      "join-us"
+      "join-us",
+      "flight-search"
     ]
   },
   {
