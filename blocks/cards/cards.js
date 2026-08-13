@@ -15,7 +15,7 @@ export default function decorate(block) {
   [...block.children].forEach((row) => {
     const li = document.createElement('li');
 
-    // Field order (by model): 0=image, 1=text, 2=ctalabel, 3=ctalink, 4=ctastyle, 5=layout
+    // Fields: 0=image, 1=text, 2=ctalabel, 3=ctalink, 4=ctastyle, 5=layout, 6=style, 7=imgstyle
     const ctaLabelDiv = row.children[2];
     const ctaLabel = ctaLabelDiv?.querySelector('p')?.textContent?.trim()
       || ctaLabelDiv?.textContent?.trim() || '';
@@ -30,21 +30,39 @@ export default function decorate(block) {
     const ctaStyle = ctaStyleDiv?.querySelector('p')?.textContent?.trim()
       || ctaStyleDiv?.textContent?.trim() || 'button';
 
+    const styleDiv = row.children[6];
+    const style = styleDiv?.querySelector('p')?.textContent?.trim()
+      || styleDiv?.textContent?.trim() || '';
+
+    const imageStyleDiv = row.children[7];
+    const imageStyle = imageStyleDiv?.querySelector('p')?.textContent?.trim()
+      || imageStyleDiv?.textContent?.trim() || '';
+
+    if (style) {
+      li.classList.add(style);
+    }
+
     moveInstrumentation(row, li);
     while (row.firstElementChild) li.append(row.firstElementChild);
 
     // Process the li children
+    let imageDiv = null;
     [...li.children].forEach((div, index) => {
       if (index === 0) {
         div.className = 'cards-card-image';
+        imageDiv = div;
       } else if (index === 1) {
         div.className = 'cards-card-body';
       } else {
-        // Hide config divs (ctalabel, ctalink, ctastyle)
+        // Hide config divs (ctalabel, ctalink, ctastyle, layout, style, imagestyle)
         div.className = 'cards-config';
         div.style.display = 'none';
       }
     });
+
+    if (imageStyle && imageDiv) {
+      imageDiv.classList.add(imageStyle);
+    }
 
     // Render CTA button from label + link fields
     if (ctaLabel && ctaLink) {

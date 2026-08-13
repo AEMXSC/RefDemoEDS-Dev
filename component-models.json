@@ -484,6 +484,78 @@
           { "name": "Default", "value": "default" },
           { "name": "Articles", "value": "articles" }
         ]
+      },
+      {
+        "component": "select",
+        "name": "style",
+        "label": "Style",
+        "options": [
+          {
+            "name": "default",
+            "value": ""
+          },
+          {
+            "name": "Image Top",
+            "value": "image-top"
+          },
+          {
+            "name": "Image Bottom",
+            "value": "image-bottom"
+          },
+          {
+            "name": "Image Left",
+            "value": "image-left"
+          },
+          {
+            "name": "Image Right",
+            "value": "image-right"
+          },
+          {
+            "name": "Teaser Overlay",
+            "value": "teaser-overlay"
+          },
+          {
+            "name": "Teaser Card",
+            "value": "teaser-card"
+          },
+          {
+            "name": "Icon Cards",
+            "value": "icon-cards"
+          }
+        ]
+      },
+      {
+        "component": "select",
+        "name": "imagestyle",
+        "label": "Image Style",
+        "valueType": "string",
+        "value": "",
+        "options": [
+          {
+            "name": "Cover (default)",
+            "value": ""
+          },
+          {
+            "name": "Contain",
+            "value": "contain"
+          },
+          {
+            "name": "Fill",
+            "value": "fill"
+          },
+          {
+            "name": "None",
+            "value": "none"
+          },
+          {
+            "name": "Scale Down",
+            "value": "scale-down"
+          },
+          {
+            "name": "Compact Style",
+            "value": "compact-style"
+          }
+        ]
       }
     ]
   },
