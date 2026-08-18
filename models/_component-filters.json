@@ -65,7 +65,10 @@
       "text",
       "title",
       "title-block",
-      "video"
+      "video",
+      "join-us",
+      "fragment-list",
+      "create-account"
     ]
   }
 ]
