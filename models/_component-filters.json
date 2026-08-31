@@ -36,7 +36,12 @@
       "title",
       "title-block",
       "video",
-      "sign-in"
+      "create-account",
+      "sign-in",
+      "fragment-list",
+      "flights",
+      "join-us",
+      "flight-search"
     ]
   },
   {
