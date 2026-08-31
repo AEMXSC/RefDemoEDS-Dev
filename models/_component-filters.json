@@ -36,6 +36,7 @@
       "title",
       "title-block",
       "video",
+      "checkout",
       "create-account",
       "sign-in",
       "fragment-list",
@@ -66,7 +67,10 @@
       "text",
       "title",
       "title-block",
-      "video"
+      "video",
+      "join-us",
+      "fragment-list",
+      "create-account"
     ]
   }
 ]
