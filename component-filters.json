@@ -36,7 +36,12 @@
       "forex",
       "embed-adaptive-form",
       "find-a-doctor",
-      "checkout"
+      "checkout",
+      "create-account",
+      "fragment-list",
+      "flights",
+      "join-us",
+      "flight-search"
     ]
   },
   {
@@ -72,7 +77,10 @@
       "title",
       "title-block",
       "video",
-      "dynamic-media-video"
+      "dynamic-media-video",
+      "join-us",
+      "fragment-list",
+      "create-account"
     ]
   },
   {
