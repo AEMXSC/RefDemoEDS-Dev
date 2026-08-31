@@ -4,7 +4,7 @@ import { dispatchCustomEvent } from '../../scripts/custom-events.js';
 import { isAuthorEnvironment } from '../../scripts/scripts.js';
 import { getEnvironmentValue, getHostname, getPathDetails } from '../../scripts/utils.js';
 
-const AUTHOR_GRAPHQL_BASE_For_Dropdown = '/graphql/execute.json/wkndfly-template/flight-source-dropdown';
+const AUTHOR_GRAPHQL_BASE_For_Dropdown = '/graphql/execute.json/ref-demo-eds/flight-source-dropdown';
 const PUBLISH_GRAPHQL_BASE_For_Dropdown = 'https://675172-referencedemopartner-stage.adobeioruntime.net/api/v1/web/dx-excshell-1/flight-source-dropdown';
 let flightSearchApiConfigPromise;
 
@@ -469,7 +469,7 @@ function setupClickOutside() {
 }
 
 // Main decorate function
-export default async function decorate(block) { // cache
+export default async function decorate(block) {
   const config = readBlockConfig(block) || {};
   const isAuthor = isAuthorEnvironment();
   /* Hide button config rows (index >= 7) on published/live */
