@@ -8,7 +8,7 @@ const TRIP_STORAGE_KEY = 'project_selected_flights';
 
 function getBookingData() {
   try {
-    const raw = localStorage.getItem(BOOKING_STORAGE_KEY);
+    const raw = sessionStorage.getItem(BOOKING_STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
